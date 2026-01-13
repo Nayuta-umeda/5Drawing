@@ -3,14 +3,14 @@ import { CFG, $, makeToast, getWsBase, wsUrlFromBase, loadPendingAction, clearPe
 
 const say = makeToast();
 
-// ===== 内部ログ（非表示） =====
+// ===== 内部ログ（ユーザーには見せない） =====
 const internalLog=[];
 function log(type,data){
   internalLog.push({t:Date.now(),type,data});
   if(internalLog.length>5000) internalLog.splice(0,1000);
 }
 
-// ===== UI参照 =====
+// ===== UI =====
 const themeLine=$("themeLine");
 const chipRoom=$("chipRoom");
 const chipKoma=$("chipKoma");
@@ -23,7 +23,7 @@ const netText=$("netText");
 function setNet(ok, msg){
   netDot.classList.toggle("on", ok);
   netDot.classList.toggle("off", !ok);
-  netText.textContent = ok ? (msg || "通信: ON") : (msg || "通信: OFF");
+  netText.textContent = msg || (ok ? "通信: ON" : "通信: OFF");
 }
 
 // ===== Canvas =====
@@ -31,31 +31,10 @@ const W=CFG.W, H=CFG.H, FRAME_COUNT=CFG.FRAME_COUNT, FPS=CFG.FPS;
 const cDraw=$("draw"), cOnion=$("onion"), cPlay=$("play");
 cDraw.width=cOnion.width=cPlay.width=W;
 cDraw.height=cOnion.height=cPlay.height=H;
+
 const ctx=cDraw.getContext("2d",{alpha:false});
 const octx=cOnion.getContext("2d",{alpha:true});
 const pctx=cPlay.getContext("2d",{alpha:false});
-
-// ===== 状態 =====
-const state={
-  wsBase: getWsBase(),
-  room:null, // {roomId, visibility, theme, canEdit, assignedFrame, reservationToken, reservationExpiresAt, flow, pass}
-  frames:Array.from({length:FRAME_COUNT},()=>({filled:false,img:null,url:null})),
-  localDraft:Array.from({length:FRAME_COUNT},()=>null),
-  currentFrame:0,
-  tool:"pen",
-  color:"#141425",
-  size:6,
-  onion:true,
-  loop:false,
-  playing:false,
-  playFrame:0,
-  playT:0,
-  dirty:false,
-  lastAutoSend:0,
-  wantConnect:true,
-};
-
-const draftCache=new Map(); // idx -> Image
 
 function fillWhite(tctx){
   tctx.save();
@@ -66,14 +45,38 @@ function fillWhite(tctx){
   tctx.restore();
 }
 
-function resetFramesLocal(){
+// ===== 状態 =====
+const state={
+  wsBase: getWsBase(),
+  room:null,
+  frames:Array.from({length:FRAME_COUNT},()=>({filled:false,img:null,url:null})),
+  localDraft:Array.from({length:FRAME_COUNT},()=>null),
+  currentFrame:0,
+  tool:"pen",
+  color:"#141425",
+  size:6,
+  onion:true,
+  loop:false,
+  playing:false,
+  playFrame:0,
+  dirty:false,
+  submitted:false,
+  autoSubmitAt:0,
+};
+
+const draftCache=new Map(); // idx->Image
+
+function resetFrames(){
   for(const f of state.frames){
     if(f.url) URL.revokeObjectURL(f.url);
     f.filled=false; f.img=null; f.url=null;
   }
-  draftCache.clear();
   state.localDraft.fill(null);
+  draftCache.clear();
   state.currentFrame=0;
+  state.dirty=false;
+  state.submitted=false;
+  state.autoSubmitAt=0;
   fillWhite(ctx); octx.clearRect(0,0,W,H); fillWhite(pctx);
   renderKoma();
 }
@@ -107,7 +110,7 @@ function clearLocalDraftsForRoom(roomId){
   for(let i=0;i<FRAME_COUNT;i++){
     localStorage.removeItem(`anim5s_room_${roomId}_frame_${i}`);
   }
-  say("この端末の保存を消した");
+  say("消した");
 }
 
 function getBestImage(idx){
@@ -134,7 +137,7 @@ function renderOnion(){
   const img=getBestImage(prev);
   if(!img) return;
   octx.save();
-  octx.globalAlpha=1;
+  octx.globalAlpha = CFG.ONION_OPACITY;
   octx.drawImage(img,0,0,W,H);
   octx.restore();
 }
@@ -170,25 +173,24 @@ function renderKoma(){
   }
   if(r.canEdit==="assigned"){
     const n=(r.assignedFrame??0)+1;
-    let s=`あなたのコマ ${n}`;
-    if(r.reservationExpiresAt){
-      const left=Math.max(0, Math.ceil((r.reservationExpiresAt-Date.now())/1000));
-      if(left>0) s += ` / のこり ${left}s`;
-    }
-    chipKoma.textContent=s;
-    badge.textContent=`コマ ${n}`;
+    let left = 0;
+    if(state.autoSubmitAt) left = Math.max(0, Math.ceil((state.autoSubmitAt-Date.now())/1000));
+    chipKoma.textContent = `あなたのコマ ${n}` + (left?` / ${left}s`:"");
+    badge.textContent = `コマ ${n}`;
   }else if(r.canEdit==="view"){
-    chipKoma.textContent=`見るだけ`;
-    badge.textContent=`見るだけ`;
+    chipKoma.textContent="見るだけ";
+    badge.textContent="見るだけ";
   }else{
     chipKoma.textContent=`コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
     badge.textContent=`コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
   }
 }
 
-// ===== 入力（線が途切れにくい補間） =====
+// ===== 入力（線が途切れにくい） =====
 let drawing=false, lastX=0, lastY=0;
+let strokePts=[]; // [[x,y],...]
 const undoStack=[];
+
 function pushUndo(){
   try{
     undoStack.push(ctx.getImageData(0,0,W,H));
@@ -200,18 +202,18 @@ function setTool(t){
   $("penBtn").className = "btn " + (t==="pen"?"ok":"sub");
   $("eraserBtn").className = "btn " + (t==="erase"?"ok":"sub");
 }
-function toCanvasXY(ev){
-  const r=cDraw.getBoundingClientRect();
-  const x=(ev.clientX-r.left)/r.width*W;
-  const y=(ev.clientY-r.top)/r.height*H;
-  return {x:Math.max(0,Math.min(W,x)), y:Math.max(0,Math.min(H,y))};
-}
 function canEditNow(){
   const r=state.room;
   if(!r) return false;
   if(r.canEdit==="view") return false;
   if(r.canEdit==="assigned") return state.currentFrame===r.assignedFrame;
   return true;
+}
+function toCanvasXY(ev){
+  const r=cDraw.getBoundingClientRect();
+  const x=(ev.clientX-r.left)/r.width*W;
+  const y=(ev.clientY-r.top)/r.height*H;
+  return {x:Math.max(0,Math.min(W,x)), y:Math.max(0,Math.min(H,y))};
 }
 function paintPoint(x,y){
   ctx.save();
@@ -231,14 +233,23 @@ function drawLine(ax,ay,bx,by){
     paintPoint(ax+dx*t, ay+dy*t);
   }
 }
+function addStrokePoint(x,y){
+  strokePts.push([x|0, y|0]);
+  if(strokePts.length>1400){
+    strokePts = strokePts.filter((_,i)=>i%2===0);
+  }
+}
 
+// pointer
 cDraw.addEventListener("pointerdown",(ev)=>{
   if(!canEditNow()) return;
   drawing=true;
+  strokePts=[];
   pushUndo();
   const p=toCanvasXY(ev);
   lastX=p.x; lastY=p.y;
   paintPoint(lastX,lastY);
+  addStrokePoint(lastX,lastY);
   state.dirty=true;
   cDraw.setPointerCapture(ev.pointerId);
 });
@@ -250,16 +261,20 @@ cDraw.addEventListener("pointermove",(ev)=>{
     const p=toCanvasXY(e);
     drawLine(lastX,lastY,p.x,p.y);
     lastX=p.x; lastY=p.y;
+    addStrokePoint(lastX,lastY);
   }
   state.dirty=true;
 });
+
 async function endStroke(ev){
   if(!drawing) return;
   drawing=false;
   try{ cDraw.releasePointerCapture(ev.pointerId); }catch{}
   saveLocalDraft();
   renderOnion();
-  await autoSendMaybe();
+
+  // ② 指を離した時は「提出」しない。ログだけ送る。
+  sendStrokeLog();
 }
 cDraw.addEventListener("pointerup", endStroke);
 cDraw.addEventListener("pointercancel", endStroke);
@@ -297,9 +312,11 @@ $("onionBtn").addEventListener("click",()=>{
   $("onionBtn").textContent = state.onion ? "前: ON" : "前: OFF";
   renderOnion();
 });
-$("sendBtn").addEventListener("click",()=>sendCurrentFrame(false));
 
-// ===== コマ操作（プライベートのみ） =====
+// ② 提出はここだけ（送信ボタン）
+$("sendBtn").addEventListener("click",()=>submitCurrentFrame(false));
+
+// ===== コマ操作（プライベートだけ） =====
 const slider=$("slider");
 function applyFrameChange(){
   if(!state.room) return;
@@ -320,27 +337,25 @@ function stepFrame(d){
 $("prevBtn").addEventListener("click",()=>stepFrame(-1));
 $("nextBtn").addEventListener("click",()=>stepFrame( 1));
 
-// ===== 再生 =====
-const pf=$("pf"), pt=$("pt"), bar=$("bar");
-function renderPlayUI(){
-  pf.textContent=`コマ ${state.playFrame+1}`;
-  bar.style.width=((state.playFrame)/(FRAME_COUNT-1)*100).toFixed(1)+"%";
-  pt.textContent=state.playT.toFixed(2);
-}
+$("syncBtn").addEventListener("click",()=>{
+  if(!state.room){ say("部屋なし"); return; }
+  sendJson({t:"resync", roomId: state.room.roomId});
+  say("同期");
+});
+
+// ===== 再生（止めたコマで止まる） =====
+let playTimer=null;
 function drawPlayFrame(i){
   fillWhite(pctx);
   const img=getBestImage(i);
   if(img) pctx.drawImage(img,0,0,W,H);
 }
-let playTimer=null;
 function startPlayback(){
   if(!state.room) return;
   state.playing=true;
   stage.classList.add("preview");
   state.playFrame=state.currentFrame;
-  state.playT=state.playFrame/FPS;
   drawPlayFrame(state.playFrame);
-  renderPlayUI();
   clearInterval(playTimer);
   playTimer=setInterval(()=>{
     if(!state.playing) return;
@@ -349,21 +364,17 @@ function startPlayback(){
       if(state.loop) state.playFrame=0;
       else { stopPlayback(); return; }
     }
-    state.playT=state.playFrame/FPS;
     drawPlayFrame(state.playFrame);
-    renderPlayUI();
   }, Math.round(1000/FPS));
 }
 function stopPlayback(){
   state.playing=false;
   clearInterval(playTimer);
   playTimer=null;
-  // 止めたコマで止まる
   state.currentFrame=state.playFrame;
   slider.value=String(state.currentFrame);
   stage.classList.remove("preview");
   drawFrameToMain(state.currentFrame);
-  renderPlayUI();
 }
 $("playBtn").addEventListener("click",()=>startPlayback());
 $("stopBtn").addEventListener("click",()=>stopPlayback());
@@ -424,13 +435,8 @@ $("clearLocalBtn").addEventListener("click",()=>{
   if(!state.room){ say("部屋なし"); return; }
   clearLocalDraftsForRoom(state.room.roomId);
 });
-$("syncBtn").addEventListener("click",()=>{
-  if(!state.room){ say("部屋なし"); return; }
-  sendJson({t:"resync", roomId: state.room.roomId});
-  say("同期");
-});
 
-// ===== WebSocket（落ちても戻る） =====
+// ===== WebSocket =====
 let ws=null;
 let pendingBinary=null;
 let joinInFlight=false;
@@ -438,18 +444,12 @@ let reconnectTimer=null;
 let reconnectTry=0;
 let keepaliveTimer=null;
 
-function clearTimers(){
-  clearTimeout(reconnectTimer); reconnectTimer=null;
-  clearInterval(keepaliveTimer); keepaliveTimer=null;
-}
-
 function sendJson(obj){
   if(!ws || ws.readyState!==1) return false;
   try{ ws.send(JSON.stringify(obj)); return true; }catch{ return false; }
 }
 
 function scheduleReconnect(){
-  if(!state.wantConnect) return;
   if(reconnectTimer) return;
   const delay = Math.min(30_000, 900 * (2 ** reconnectTry));
   reconnectTry = Math.min(6, reconnectTry+1);
@@ -460,7 +460,6 @@ function scheduleReconnect(){
 function startKeepalive(){
   clearInterval(keepaliveTimer);
   keepaliveTimer = setInterval(()=>{
-    // JSON ping（プロキシ対策）
     sendJson({t:"ping", ts:Date.now()});
   }, 15_000);
 }
@@ -470,15 +469,16 @@ function connect(){
   state.wsBase = base;
   if(!base){
     setNet(false, "通信: URLなし");
-    say("ロビーでサーバーURLを保存して");
+    say("config.js のURL");
     return;
   }
   const url = wsUrlFromBase(base);
+
   try{ ws?.close(); }catch{}
   try{
     ws = new WebSocket(url);
     ws.binaryType = "arraybuffer";
-  }catch(e){
+  }catch{
     setNet(false, "通信: NG");
     scheduleReconnect();
     return;
@@ -489,7 +489,6 @@ function connect(){
     setNet(true);
     startKeepalive();
     sendJson({t:"hello"});
-    // すでに部屋にいるなら同期
     if(state.room) sendJson({t:"resync", roomId: state.room.roomId});
   };
 
@@ -499,10 +498,7 @@ function connect(){
     scheduleReconnect();
   };
 
-  ws.onerror = ()=>{
-    // oncloseへ行くことが多い。ここでは表示だけ。
-    setNet(false);
-  };
+  ws.onerror = ()=>{ setNet(false); };
 
   ws.onmessage = async (ev)=>{
     if(typeof ev.data === "string"){
@@ -516,19 +512,13 @@ function connect(){
 }
 
 document.addEventListener("visibilitychange", ()=>{
-  // スマホで背景に行くとWSが切れやすい → 戻ったら再接続
   if(document.visibilityState === "visible"){
-    if(state.wantConnect && (!ws || ws.readyState!==1)){
-      connect();
-    }
+    if(!ws || ws.readyState!==1) connect();
   }
 });
 
 async function onMsg(m){
   if(!m || !m.t) return;
-
-  if(m.t==="ping"){ sendJson({t:"pong", ts:m.ts}); return; } // 互換（サーバーがJSON pingの時）
-  if(m.t==="pong"){ return; }
 
   if(m.t==="error"){
     say(m.message || "エラー");
@@ -539,7 +529,6 @@ async function onMsg(m){
   if(m.t==="room_joined"){
     joinInFlight=false;
     applyRoomJoined(m);
-    // 入室後に全画像をもらう
     sendJson({t:"resync", roomId:m.roomId});
     return;
   }
@@ -549,9 +538,10 @@ async function onMsg(m){
     return;
   }
   if(m.t==="frame_submit_ok"){
-    say("送った");
+    state.submitted = true;
+    say("OK");
+    // create/random はロビーへ戻す（流れが簡単）
     if(state.room && (state.room.flow==="create" || state.room.flow==="random")){
-      // 1枚描き切りはロビーへ
       setTimeout(()=>location.href="./index.html", 450);
     }
     return;
@@ -563,6 +553,7 @@ async function onBinary(buf){
   const {roomId, frameIndex, mime}=pendingBinary;
   pendingBinary=null;
   if(!state.room || state.room.roomId!==roomId) return;
+
   try{
     const blob=new Blob([buf], {type:mime});
     const url=URL.createObjectURL(blob);
@@ -573,6 +564,7 @@ async function onBinary(buf){
     const f=state.frames[frameIndex];
     if(f.url) URL.revokeObjectURL(f.url);
     f.url=url; f.img=img; f.filled=true;
+
     log("frame_update",{frame:frameIndex});
     if(!state.playing && frameIndex===state.currentFrame){
       drawFrameToMain(frameIndex);
@@ -585,7 +577,8 @@ async function onBinary(buf){
 
 function applyRoomJoined(m){
   stopPlayback();
-  resetFramesLocal();
+  resetFrames();
+
   state.room={
     roomId:m.roomId,
     visibility:m.visibility,
@@ -593,31 +586,36 @@ function applyRoomJoined(m){
     canEdit:m.canEdit, // assigned/any/view
     assignedFrame: (typeof m.assignedFrame==="number") ? m.assignedFrame : null,
     reservationToken: m.reservationToken || null,
-    reservationExpiresAt: m.reservationExpiresAt || null,
     flow: m.flow || "unknown",
     pass: m.pass || null,
   };
+
   renderRoomHeader();
   loadLocalDraftsForRoom(state.room.roomId);
 
-  // 権限ごとUI
   const isView = state.room.canEdit==="view";
-  const isAny = state.room.canEdit==="any";
+  const isAny  = state.room.canEdit==="any";
+
+  // 編集可否
   $("sendBtn").disabled = isView;
   $("penBtn").disabled = isView;
   $("eraserBtn").disabled = isView;
   $("undoBtn").disabled = isView;
   $("clearBtn").disabled = isView;
 
+  // コマスライダーは private(any) のときだけ
   $("frameBox").style.display = isAny ? "" : "none";
   slider.disabled = !isAny;
   $("prevBtn").disabled = !isAny;
   $("nextBtn").disabled = !isAny;
 
+  // assigned のときは自分のコマ固定 + 60秒タイマー
   if(state.room.canEdit==="assigned"){
     state.currentFrame = state.room.assignedFrame ?? 0;
+    state.autoSubmitAt = Date.now() + CFG.AUTO_SUBMIT_MS;
   }else{
     state.currentFrame = 0;
+    state.autoSubmitAt = 0;
   }
   slider.value = String(state.currentFrame);
 
@@ -632,27 +630,40 @@ function applyRoomState(m){
     state.room.theme=m.theme;
     renderRoomHeader();
   }
-  if(Array.isArray(m.filled)){
-    for(let i=0;i<FRAME_COUNT;i++) state.frames[i].filled=!!m.filled[i];
-  }
-  if(m.reservationExpiresAt) state.room.reservationExpiresAt=m.reservationExpiresAt;
   renderKoma();
 }
 
-// ===== 送信（自動＋手動） =====
-async function autoSendMaybe(){
+// ===== ログ送信（内部データ。提出じゃない） =====
+function sendStrokeLog(){
   if(!state.room) return;
-  if(state.room.canEdit==="view") return;
-  if(!state.dirty) return;
-  const now=Date.now();
-  if(now-state.lastAutoSend<CFG.MAX_AUTOSEND_INTERVAL) return;
-  await sendCurrentFrame(true);
+  if(!ws || ws.readyState!==1) return;
+  if(!strokePts.length) return;
+
+  // 送る点を間引く
+  let pts = strokePts;
+  if(pts.length > 500){
+    const step = Math.ceil(pts.length / 500);
+    pts = pts.filter((_,i)=>i%step===0);
+  }
+  sendJson({
+    t:"log_stroke",
+    roomId: state.room.roomId,
+    frameIndex: state.currentFrame,
+    tool: state.tool,
+    color: state.color,
+    size: state.size,
+    pts,
+    ts: Date.now(),
+  });
+  log("log_stroke",{n:pts.length});
 }
 
-async function sendCurrentFrame(isAuto){
+// ===== 提出（PNG確定） =====
+async function submitCurrentFrame(isAuto){
   if(!state.room) return;
   if(state.room.canEdit==="view") return;
   if(state.room.canEdit==="assigned" && state.currentFrame!==state.room.assignedFrame) return;
+  if(state.submitted) return;
 
   if(!ws || ws.readyState!==1){
     say("通信OFF");
@@ -677,29 +688,35 @@ async function sendCurrentFrame(isAuto){
   });
   ws.send(blob);
 
-  state.lastAutoSend=Date.now();
   state.dirty=false;
   if(!isAuto) say("送信中…", 900);
   log("submit",{roomId, frameIndex, auto:!!isAuto});
 }
 
-// ===== 入室（ページから決める） =====
+// ② 60秒で自動提出（assignedだけ）
+setInterval(()=>{
+  if(!state.room) return;
+  if(state.room.canEdit!=="assigned") return;
+  if(state.submitted) return;
+  renderKoma();
+  if(state.autoSubmitAt && Date.now() >= state.autoSubmitAt){
+    submitCurrentFrame(true);
+  }
+}, 250);
+
+// ===== 入室（ページは完全分離。ここは editor だけ） =====
 function beginAction(){
   const action = loadPendingAction();
   clearPendingAction();
 
-  // action が無いなら「最後の部屋に入る」みたいな機能はまだ無いのでロビーへ
   if(!action){
-    say("ロビーから入ってね", 1600);
+    say("ロビー");
     setTimeout(()=>location.href="./index.html", 600);
     return;
   }
 
-  // 接続
-  state.wantConnect = true;
   connect();
 
-  // 接続が間に合わない時があるので、少し待ってから join を投げる
   const tryJoin = () => {
     if(!ws || ws.readyState!==1){
       setTimeout(tryJoin, 160);
@@ -715,29 +732,29 @@ function beginAction(){
         theme: action.theme || "お題",
         passphrase: action.visibility==="private" ? (action.passphrase||"") : undefined,
       });
-      badge.textContent="部屋を作成中…";
+      badge.textContent="部屋を作成中";
       return;
     }
     if(action.kind==="random"){
       sendJson({t:"join_random"});
-      badge.textContent="部屋を探し中…";
+      badge.textContent="部屋を探し中";
       return;
     }
     if(action.kind==="private"){
       sendJson({t:"join_private", roomId: (action.roomId||"").toUpperCase(), passphrase: action.passphrase||""});
-      badge.textContent="入室中…";
+      badge.textContent="入室中";
       return;
     }
     if(action.kind==="view"){
       const msg={t:"join_view", roomId: (action.roomId||"").toUpperCase()};
       if(action.passphrase) msg.passphrase = action.passphrase;
       sendJson(msg);
-      badge.textContent="読み込み中…";
+      badge.textContent="読み込み中";
       return;
     }
 
     joinInFlight=false;
-    say("ロビーから入ってね", 1600);
+    say("ロビー");
     setTimeout(()=>location.href="./index.html", 600);
   };
   tryJoin();
@@ -750,10 +767,4 @@ octx.clearRect(0,0,W,H);
 setTool("pen");
 setNet(false);
 renderRoomHeader();
-renderPlayUI();
-
-// 予約表示更新
-setInterval(()=>{ if(state.room) renderKoma(); }, 250);
-
-// start
-beginAction()
+beginAction();
