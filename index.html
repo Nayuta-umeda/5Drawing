@@ -1,33 +1,37 @@
 <!doctype html>
+
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#6a7cff" />
+  <meta name="theme-color" content="#7b6cff" />
   <title>5秒アニメ（みんなで）</title>
   <style>
     :root{
       color-scheme: light;
       --bg:#f6f7ff;
-      --ink:#141428;
+      --ink:#151528;
       --line:rgba(20,20,40,.10);
       --shadow: 0 14px 34px rgba(26,26,60,.14);
-      --a:#6a7cff;
-      --p:#ff5cc8;
-      --m:#35d6c4;
+      --a:#7b6cff;
+      --p:#ff57c6;
+      --m:#2fd6c2;
       --y:#ffd34a;
-      --r:#ff486a;
+      --r:#ff3b62;
       --R:18px;
       --onionOpacity:.20;
+      --btn:#ffffff;
+      --btn2:rgba(255,255,255,.92);
+      --glass:rgba(255,255,255,.86);
     }
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
     body{
       margin:0;
       background:
-        radial-gradient(1200px 700px at 10% 10%, rgba(106,124,255,.18), transparent 55%),
-        radial-gradient(900px 500px at 90% 20%, rgba(255,92,200,.14), transparent 55%),
-        radial-gradient(900px 700px at 30% 95%, rgba(53,214,196,.12), transparent 55%),
+        radial-gradient(1100px 700px at 10% 10%, rgba(123,108,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(255,87,198,.14), transparent 55%),
+        radial-gradient(900px 700px at 30% 95%, rgba(47,214,194,.12), transparent 55%),
         var(--bg);
       color:var(--ink);
       font-family: system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
@@ -48,16 +52,16 @@
       justify-content:space-between;
       gap:10px;
       padding:10px 12px;
-      background: rgba(255,255,255,.88);
+      background: var(--glass);
       border: 1px solid var(--line);
       border-radius: var(--R);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(6px);
-      min-height: 60px;
+      backdrop-filter: blur(7px);
+      min-height: 62px;
     }
     .left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
     .title{ font-weight: 1000; letter-spacing:.06em; font-size: 14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .themeLine{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .themeLine{ font-weight: 1000; font-size: 12px; color: rgba(20,20,40,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .right{ display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
     .chip{
       display:inline-flex;
@@ -73,1491 +77,1421 @@
       white-space:nowrap;
     }
     .dot{ width:10px; height:10px; border-radius:99px; background: rgba(20,20,40,.25); }
-    .dot.on{ background: rgba(53,214,196,.95); }
-    .dot.bad{ background: rgba(255,72,106,.95); }
+    .dot.on{ background: rgba(47,214,194,.95); }
+    .dot.bad{ background: rgba(255,59,98,.95); }main{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
 
-    main{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
+.stage{
+  flex:0 0 auto;
+  height:54vh;
+  height:54dvh;
+  min-height:320px;
+  max-height:590px;
+  border-radius: var(--R);
+  border: 1px solid rgba(20,20,40,.12);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  position:relative;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  aspect-ratio: 1 / 1;
+  background-image:
+    linear-gradient(rgba(20,20,40,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,20,40,.045) 1px, transparent 1px);
+  background-size:16px 16px;
+  background-position:center;
+}
+.stage canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  image-rendering: pixelated;
+  display:block;
+}
+#draw{ z-index:2; touch-action:none; }
+#onion{ z-index:3; pointer-events:none; opacity: var(--onionOpacity); }
+#play{ z-index:4; display:none; pointer-events:none; }
+.stage.preview #play{ display:block; }
+.stage.preview #draw{ pointer-events:none; }
+.stage.preview #onion{ opacity: 0; }
 
-    .stage{
-      flex:0 0 auto;
-      height:54vh;
-      height:54dvh;
-      min-height:320px;
-      max-height:580px;
-      border-radius: var(--R);
-      border: 1px solid rgba(20,20,40,.12);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      position:relative;
-      background:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      aspect-ratio: 1 / 1;
-      background-image:
-        linear-gradient(rgba(20,20,40,.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(20,20,40,.045) 1px, transparent 1px);
-      background-size:16px 16px;
-      background-position:center;
-    }
-    .stage canvas{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      image-rendering: pixelated;
-      display:block;
-    }
-    #draw{ z-index:2; touch-action:none; }
-    #onion{ z-index:3; pointer-events:none; opacity: var(--onionOpacity); }
-    #play{ z-index:4; display:none; pointer-events:none; }
-    .stage.preview #play{ display:block; }
-    .stage.preview #draw{ pointer-events:none; }
-    .stage.preview #onion{ opacity: 0; }
+.badge{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:10;
+  padding:10px 12px;
+  border-radius:999px;
+  border:1px solid rgba(20,20,40,.12);
+  background: rgba(255,255,255,.90);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 12px 26px rgba(26,26,60,.18);
+  font-weight: 1000;
+  letter-spacing:.06em;
+  font-size: 16px;
+}
 
-    .badge{
-      position:absolute;
-      top:10px;
-      left:10px;
-      z-index:10;
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(20,20,40,.12);
-      background: rgba(255,255,255,.90);
-      backdrop-filter: blur(4px);
-      box-shadow: 0 12px 26px rgba(26,26,60,.18);
-      font-weight: 1000;
-      letter-spacing:.06em;
-      font-size: 16px;
-    }
+.panel{
+  flex:1;
+  min-height:0;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--R);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  backdrop-filter: blur(7px);
+}
+.tab{ flex:1; min-height:0; overflow:auto; padding:10px; display:none; }
+.tab.on{ display:block; }
 
-    .panel{
-      flex:1;
-      min-height:0;
-      background: rgba(255,255,255,.88);
-      border: 1px solid var(--line);
-      border-radius: var(--R);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      backdrop-filter: blur(6px);
-    }
-    .tab{ flex:1; min-height:0; overflow:auto; padding:10px; display:none; }
-    .tab.on{ display:block; }
+.bar{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:8px;
+  padding:10px;
+  border-top: 1px solid rgba(20,20,40,.08);
+  background: rgba(255,255,255,.70);
+}
+.tbtn{
+  padding:10px 8px;
+  border-radius:14px;
+  border: 1px solid rgba(20,20,40,.10);
+  background: rgba(255,255,255,.98);
+  color: rgba(20,20,40,.72);
+  font-weight: 1000;
+  font-size: 13px;
+  letter-spacing:.04em;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+  box-shadow: 0 10px 22px rgba(26,26,60,.10);
+}
+.tbtn.on{
+  background: linear-gradient(135deg, rgba(123,108,255,.22), rgba(255,87,198,.14));
+  border-color: rgba(123,108,255,.28);
+  color: rgba(20,20,40,.95);
+}
+.tbtn:disabled{ opacity:.50; cursor:not-allowed; }
 
-    .bar{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap:8px;
-      padding:10px;
-      border-top: 1px solid rgba(20,20,40,.08);
-      background: rgba(255,255,255,.74);
-    }
-    .tbtn{
-      padding:10px 8px;
-      border-radius:14px;
-      border: 1px solid rgba(20,20,40,.10);
-      background: rgba(255,255,255,.98);
-      color: rgba(20,20,40,.72);
-      font-weight: 1000;
-      font-size: 13px;
-      letter-spacing:.04em;
-      cursor:pointer;
-      -webkit-tap-highlight-color: transparent;
-      user-select:none;
-      box-shadow: 0 10px 22px rgba(26,26,60,.10);
-    }
-    .tbtn.on{
-      background: linear-gradient(135deg, rgba(106,124,255,.22), rgba(255,92,200,.14));
-      border-color: rgba(106,124,255,.28);
-      color: rgba(20,20,40,.95);
-    }
+.box{
+  background: rgba(255,255,255,.97);
+  border: 1px solid rgba(20,20,40,.10);
+  border-radius: 16px;
+  padding:10px;
+  box-shadow: 0 12px 26px rgba(26,26,60,.10);
+}
+.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.row > *{ flex:1; min-width:0; }
+.btn{
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(20,20,40,.12);
+  background: var(--btn);
+  color: rgba(20,20,40,.95);
+  font-size: 15px;
+  font-weight: 1000;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+  box-shadow: 0 12px 26px rgba(26,26,60,.12);
+}
+.btn.ok{ background: linear-gradient(135deg, rgba(47,214,194,.28), rgba(123,108,255,.18)); border-color: rgba(47,214,194,.30); }
+.btn.sub{ background: rgba(255,255,255,.98); }
+.btn.bad{ background: linear-gradient(135deg, rgba(255,59,98,.20), rgba(255,211,74,.18)); border-color: rgba(255,59,98,.28); }
+.btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-    .box{
-      background: rgba(255,255,255,.97);
-      border: 1px solid rgba(20,20,40,.10);
-      border-radius: 16px;
-      padding:10px;
-      box-shadow: 0 12px 26px rgba(26,26,60,.10);
-    }
-    .row{ display:flex; gap:10px; align-items:center; }
-    .row > *{ flex:1; min-width:0; }
-    .btn{
-      padding: 12px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(20,20,40,.12);
-      background:#fff;
-      color: rgba(20,20,40,.95);
-      font-size: 15px;
-      font-weight: 1000;
-      cursor:pointer;
-      -webkit-tap-highlight-color: transparent;
-      user-select:none;
-      box-shadow: 0 12px 26px rgba(26,26,60,.12);
-    }
-    .btn.ok{ background: linear-gradient(135deg, rgba(53,214,196,.28), rgba(106,124,255,.18)); border-color: rgba(53,214,196,.30); }
-    .btn.sub{ background: rgba(255,255,255,.98); }
-    .btn.bad{ background: linear-gradient(135deg, rgba(255,72,106,.22), rgba(255,211,74,.18)); border-color: rgba(255,72,106,.28); }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+.mini{ font-weight: 1000; font-size: 12px; color: rgba(20,20,40,.75); margin: 0 0 8px 2px; letter-spacing:.02em; }
 
-    .mini{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.75); margin: 0 0 8px 2px; letter-spacing:.02em; }
+input[type="range"]{ width:100%; }
+input[type="color"]{
+  width:100%;
+  height:48px;
+  border-radius:16px;
+  border: 1px solid rgba(20,20,40,.12);
+  background:#fff;
+  padding:6px;
+  box-shadow: 0 12px 26px rgba(26,26,60,.10);
+}
+input[type="text"], input[type="url"], input[type="password"]{
+  width:100%;
+  height:44px;
+  border-radius:16px;
+  border:1px solid rgba(20,20,40,.12);
+  padding:0 12px;
+  font-weight:1000;
+  font-size:14px;
+  box-shadow: 0 12px 26px rgba(26,26,60,.08);
+  outline:none;
+}
 
-    input[type="range"]{ width:100%; }
-    input[type="color"]{
-      width:100%;
-      height:48px;
-      border-radius:16px;
-      border: 1px solid rgba(20,20,40,.12);
-      background:#fff;
-      padding:6px;
-      box-shadow: 0 12px 26px rgba(26,26,60,.10);
-    }
-    input[type="text"], input[type="url"]{
-      width:100%;
-      height:44px;
-      border-radius:16px;
-      border:1px solid rgba(20,20,40,.12);
-      padding:0 12px;
-      font-weight:900;
-      font-size:14px;
-      box-shadow: 0 12px 26px rgba(26,26,60,.08);
-      outline:none;
-    }
+.grid2{ display:grid; grid-template-columns: .9fr 1.1fr; gap:10px; align-items:center; }
 
-    .grid2{ display:grid; grid-template-columns: .9fr 1.1fr; gap:10px; align-items:center; }
+.toast{
+  position:fixed;
+  left:12px;
+  right:12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index:90;
+  display:none;
+  justify-content:center;
+  pointer-events:none;
+}
+.toast.on{ display:flex; }
+.toast .t{
+  max-width: 980px;
+  width: 100%;
+  background: rgba(255,255,255,.92);
+  border:  1px solid rgba(20,20,40,.12);
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: 0 20px 60px rgba(26,26,60,.24);
+  font-weight: 1000;
+  color: rgba(20,20,40,.90);
+  text-align:center;
+}
 
-    .back{
-      position:fixed;
-      inset:0;
-      background: rgba(20,20,40,.35);
-      backdrop-filter: blur(3px);
-      display:none;
-      align-items:flex-end;
-      justify-content:center;
-      padding:12px;
-      z-index:50;
-    }
-    .back.on{ display:flex; }
-    .sheet{
-      width: min(980px, 100%);
-      max-height: 80vh;
-      max-height: 80dvh;
-      background: rgba(255,255,255,.97);
-      border: 1px solid rgba(20,20,40,.12);
-      border-radius: 22px;
-      box-shadow: 0 30px 80px rgba(26,26,60,.22);
-      overflow:hidden;
-    }
-    .sheetTop{
-      padding: 12px 12px 10px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom: 1px solid rgba(20,20,40,.10);
-      font-weight: 1000;
-      letter-spacing:.06em;
-    }
-    .sheetGrid{
-      padding:12px;
-      display:grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap:8px;
-    }
-    .f{
-      height:34px;
-      border-radius:12px;
-      border: 1px solid rgba(20,20,40,.12);
-      background: rgba(255,255,255,.98);
-      font-weight: 1000;
-      cursor:pointer;
-      box-shadow: 0 10px 22px rgba(26,26,60,.10);
-      -webkit-tap-highlight-color: transparent;
-      user-select:none;
-    }
-    .f.on{ outline:2px solid rgba(106,124,255,.90); outline-offset:1px; }
-    .f.empty{ opacity:.65; }
+.list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+  border-radius:16px;
+  border:1px solid rgba(20,20,40,.10);
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 12px 26px rgba(26,26,60,.10);
+}
+.item .a{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.item .id{ font-weight:1000; letter-spacing:.06em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.item .sub{ font-weight:900; font-size:12px; color: rgba(20,20,40,.70); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    .toast{
-      position:fixed;
-      left:12px;
-      right:12px;
-      bottom: calc(12px + env(safe-area-inset-bottom));
-      z-index:90;
-      display:none;
-      justify-content:center;
-      pointer-events:none;
-    }
-    .toast.on{ display:flex; }
-    .toast .t{
-      max-width: 980px;
-      width: 100%;
-      background: rgba(255,255,255,.92);
-      border:  1px solid rgba(20,20,40,.12);
-      border-radius: 18px;
-      padding: 10px 12px;
-      box-shadow: 0 20px 60px rgba(26,26,60,.24);
-      font-weight: 1000;
-      color: rgba(20,20,40,.90);
-      text-align:center;
-    }
+@media (max-height: 720px){
+  .stage{ min-height: 280px; height: 52vh; height: 52dvh; }
+  header{ min-height: 58px; }
+}
 
-    @media (max-height: 720px){
-      .stage{ min-height: 280px; height: 52vh; height: 52dvh; }
-      header{ min-height: 56px; }
-    }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
       <div class="left">
-        <div class="title">5秒アニメ（みんなで）</div>
+        <div class="title" id="title">5秒アニメ（みんなで）</div>
         <div class="themeLine" id="themeLine">お題：-</div>
       </div>
       <div class="right">
-        <div class="chip" id="chipKoma">コマ 1 / 60</div>
+        <div class="chip" id="chipRoom" style="display:none;">ID -</div>
+        <div class="chip" id="chipKoma">コマ -</div>
         <div class="chip" id="chipNet"><span class="dot" id="netDot"></span><span id="netText">通信: OFF</span></div>
+        <button class="btn sub" id="btnLobby" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</button>
       </div>
-    </header>
-
-    <main>
-      <div class="stage" id="stage">
-        <canvas id="draw"></canvas>
-        <canvas id="onion" aria-hidden="true"></canvas>
-        <canvas id="play" aria-hidden="true"></canvas>
-        <div class="badge" id="badge">コマ 1 / 60</div>
-      </div>
-
-      <section class="panel">
-        <div class="tab on" id="tabKoma">
-          <div class="box">
-            <div class="mini">コマ</div>
-            <input id="slider" type="range" min="0" max="59" value="0" />
-          </div>
-
-          <div class="row" style="margin-top:10px;">
-            <button id="prev" class="btn sub">◀ 前</button>
-            <button id="next" class="btn sub">次 ▶</button>
-            <button id="list" class="btn sub">一覧</button>
-          </div>
-
-          <div class="box" style="margin-top:10px;">
-            <div class="mini">部屋</div>
-            <div class="row">
-              <input id="room" type="text" placeholder="部屋ID" />
-              <button id="copyRoom" class="btn sub" style="flex:0 0 auto; min-width:110px;">コピー</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button id="newRoom" class="btn sub">部屋を作る</button>
-              <button id="rejoin" class="btn ok">入る/入り直す</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab" id="tabKaku">
-          <div class="box">
-            <div class="mini">道具</div>
-            <div class="row">
-              <button id="pen" class="btn ok">ペン</button>
-              <button id="erase" class="btn sub">消す</button>
-              <button id="undo" class="btn sub">戻す</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button id="clear" class="btn bad">全消し</button>
-              <button id="onionBtn" class="btn sub">前: ON</button>
-            </div>
-          </div>
-
-          <div class="box" style="margin-top:10px;">
-            <div class="mini">色 / 太さ</div>
-            <div class="grid2">
-              <input id="color" type="color" value="#141428" aria-label="色" />
-              <div class="box" style="padding:10px;">
-                <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
-                <input id="size" type="range" min="1" max="40" value="6" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab" id="tabMiru">
-          <div class="box">
-            <div class="mini">見る</div>
-            <div class="row">
-              <button id="playBtn" class="btn ok">▶ 見る</button>
-              <button id="stopBtn" class="btn sub">■ 止める</button>
-              <button id="loopBtn" class="btn sub">くり返し: OFF</button>
-            </div>
-
-            <div class="box" style="margin-top:10px;">
-              <div class="mini">いま</div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div style="font-weight:1000; min-width:60px;" id="pf">-</div>
-                <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(106,124,255,.12); overflow:hidden;">
-                  <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(106,124,255,.85), rgba(255,92,200,.75));"></div>
-                </div>
-                <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab" id="tabMenu">
-          <div class="box">
-            <div class="mini">通信</div>
-            <div class="row">
-              <input id="wsBase" type="url" placeholder="https://サーバーURL（例）" />
-              <button id="saveWs" class="btn sub" style="flex:0 0 auto; min-width:110px;">保存</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button id="connectBtn" class="btn ok">つなぐ</button>
-              <button id="resyncBtn" class="btn sub">同期</button>
-            </div>
-
-            <div class="box" style="margin-top:10px;">
-              <div class="mini">お題</div>
-              <div style="font-weight:1000; font-size:16px;" id="odai">-</div>
-              <div style="margin-top:6px; font-weight:900; color: rgba(20,20,40,.70);" id="odai2">-</div>
-
-              <div class="row" style="margin-top:10px;">
-                <button id="changeTheme" class="btn sub">お題を変える</button>
-                <button id="saveGifBtn" class="btn ok">GIFで保存</button>
-              </div>
-
-              <div class="row" style="margin-top:10px;">
-                <button id="resetBtn" class="btn bad">この端末の保存を消す</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bar">
-          <button class="tbtn on" id="tKoma">コマ</button>
-          <button class="tbtn" id="tKaku">描く</button>
-          <button class="tbtn" id="tMiru">見る</button>
-          <button class="tbtn" id="tMenu">メニュー</button>
-        </div>
-      </section>
-    </main>
+    </header><main>
+  <div class="stage" id="stage">
+    <canvas id="draw"></canvas>
+    <canvas id="onion" aria-hidden="true"></canvas>
+    <canvas id="play" aria-hidden="true"></canvas>
+    <div class="badge" id="badge">-</div>
   </div>
 
-  <div class="back" id="back" aria-hidden="true">
-    <div class="sheet" role="dialog" aria-modal="true">
-      <div class="sheetTop">
-        <div>コマ一覧</div>
-        <button id="close" class="btn sub" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">閉じる</button>
+  <section class="panel">
+    <div class="tab on" id="tabLobby">
+      <div class="box">
+        <div class="mini">ルーム</div>
+        <div class="row">
+          <button class="btn ok" id="goCreate">部屋を作る</button>
+          <button class="btn ok" id="goRandom">だれかの続きを描く</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn sub" id="goPrivate">合言葉で入る</button>
+          <button class="btn sub" id="goGallery">自分の作品</button>
+        </div>
       </div>
-      <div class="sheetGrid" id="grid"></div>
+
+      <div class="box" style="margin-top:10px;">
+        <div class="mini">通信（サーバー）</div>
+        <div class="row">
+          <input id="wsBase" type="url" placeholder="https://サーバーURL" />
+          <button id="saveWs" class="btn sub" style="flex:0 0 auto; min-width:110px;">保存</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="connectBtn" class="btn ok">つなぐ</button>
+          <button id="resyncBtn" class="btn sub">同期</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+    <div class="tab" id="tabCreate">
+      <div class="box">
+        <div class="mini">部屋を作る</div>
+        <input id="themeInput" type="text" placeholder="お題" />
+        <div class="row" style="margin-top:10px;">
+          <button class="btn sub" id="visPublic">公開</button>
+          <button class="btn sub" id="visPrivate">プライベート</button>
+        </div>
+        <div class="box" style="margin-top:10px;" id="passBox" hidden>
+          <div class="mini">合言葉</div>
+          <input id="passInput" type="password" placeholder="合言葉" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn ok" id="createRoom">作る</button>
+        </div>
+      </div>
+    </div>
 
-  <script>
-    // ====== 固定設定 ======
-    const RES = 256;
-    const FPS = 12;
-    const COUNT = 60;
+    <div class="tab" id="tabPrivate">
+      <div class="box">
+        <div class="mini">合言葉で入る</div>
+        <input id="joinRoomId" type="text" placeholder="部屋ID" />
+        <div style="height:10px;"></div>
+        <input id="joinPass" type="password" placeholder="合言葉" />
+        <div class="row" style="margin-top:10px;">
+          <button class="btn ok" id="joinPrivate">入る</button>
+        </div>
+      </div>
+    </div>
 
-    // ====== DOM ======
+    <div class="tab" id="tabGallery">
+      <div class="box">
+        <div class="mini">自分の作品（見るだけ）</div>
+        <div class="list" id="galleryList"></div>
+      </div>
+    </div>
+
+    <div class="tab" id="tabKaku">
+      <div class="box">
+        <div class="mini">道具</div>
+        <div class="row">
+          <button id="pen" class="btn ok">ペン</button>
+          <button id="erase" class="btn sub">消す</button>
+          <button id="undo" class="btn sub">戻す</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="clear" class="btn bad">全消し</button>
+          <button id="onionBtn" class="btn sub">前: ON</button>
+          <button id="sendBtn" class="btn ok">送る</button>
+        </div>
+      </div>
+
+      <div class="box" style="margin-top:10px;">
+        <div class="mini">色 / 太さ</div>
+        <div class="grid2">
+          <input id="color" type="color" value="#151528" aria-label="色" />
+          <div class="box" style="padding:10px;">
+            <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
+            <input id="size" type="range" min="1" max="40" value="6" />
+          </div>
+        </div>
+      </div>
+
+      <div class="box" style="margin-top:10px;" id="frameBox">
+        <div class="mini">コマ</div>
+        <input id="slider" type="range" min="0" max="59" value="0" />
+        <div class="row" style="margin-top:10px;">
+          <button id="prev" class="btn sub">◀ 前</button>
+          <button id="next" class="btn sub">次 ▶</button>
+          <button id="list" class="btn sub" disabled>一覧</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tabMiru">
+      <div class="box">
+        <div class="mini">見る</div>
+        <div class="row">
+          <button id="playBtn" class="btn ok">▶ 見る</button>
+          <button id="stopBtn" class="btn sub">■ 止める</button>
+          <button id="loopBtn" class="btn sub">くり返し: OFF</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="saveGifBtn" class="btn ok">GIFで保存</button>
+        </div>
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">いま</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-weight:1000; min-width:64px;" id="pf">-</div>
+            <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(123,108,255,.12); overflow:hidden;">
+              <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(123,108,255,.85), rgba(255,87,198,.75));"></div>
+            </div>
+            <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tabMenu">
+      <div class="box">
+        <div class="mini">部屋</div>
+        <div class="row">
+          <button id="copyRoom" class="btn sub">IDコピー</button>
+          <button id="leaveRoom" class="btn bad">出る</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bar" id="tabBar">
+      <button class="tbtn on" id="tKaku">描く</button>
+      <button class="tbtn" id="tMiru">見る</button>
+      <button class="tbtn" id="tMenu">メニュー</button>
+      <button class="tbtn" id="tLobby">ロビー</button>
+    </div>
+  </section>
+</main>
+
+  </div>  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>  <script>
+  (() => {
+    // ====== 基本 ======
+    const W = 256, H = 256, FRAME_COUNT = 60, FPS = 12;
     const $ = (id) => document.getElementById(id);
+    const stage = $('stage');
+    const cDraw = $('draw');
+    const cOnion = $('onion');
+    const cPlay = $('play');
+    const ctx = cDraw.getContext('2d', { alpha:false });
+    const octx = cOnion.getContext('2d', { alpha:true });
+    const pctx = cPlay.getContext('2d', { alpha:false });
 
-    const stage = $("stage");
-    const onion = $("onion");
-    const draw  = $("draw");
-    const play  = $("play");
+    cDraw.width = cOnion.width = cPlay.width = W;
+    cDraw.height = cOnion.height = cPlay.height = H;
 
-    const badge = $("badge");
-    const chipKoma = $("chipKoma");
-    const themeLine = $("themeLine");
+    const title = $('title');
+    const themeLine = $('themeLine');
+    const chipRoom = $('chipRoom');
+    const chipKoma = $('chipKoma');
+    const badge = $('badge');
+    const netDot = $('netDot');
+    const netText = $('netText');
 
-    const netDot = $("netDot");
-    const netText = $("netText");
-
-    const slider = $("slider");
-    const prev = $("prev");
-    const next = $("next");
-    const list = $("list");
-
-    const roomInp = $("room");
-    const copyRoomBtn = $("copyRoom");
-    const newRoomBtn = $("newRoom");
-    const rejoinBtn = $("rejoin");
-
-    const pen = $("pen");
-    const erase = $("erase");
-    const undo = $("undo");
-    const clearBtn = $("clear");
-    const onionBtn = $("onionBtn");
-    const color = $("color");
-    const size = $("size");
-    const w = $("w");
-
-    const playBtn = $("playBtn");
-    const stopBtn = $("stopBtn");
-    const loopBtn = $("loopBtn");
-    const pf = $("pf");
-    const pt = $("pt");
-    const bar = $("bar");
-
-    const wsBase = $("wsBase");
-    const saveWs = $("saveWs");
-    const connectBtn = $("connectBtn");
-    const resyncBtn = $("resyncBtn");
-
-    const odai = $("odai");
-    const odai2 = $("odai2");
-    const changeThemeBtn = $("changeTheme");
-    const saveGifBtn = $("saveGifBtn");
-    const resetBtn = $("resetBtn");
-
-    const back = $("back");
-    const close = $("close");
-    const grid = $("grid");
-
-    const tKoma = $("tKoma");
-    const tKaku = $("tKaku");
-    const tMiru = $("tMiru");
-    const tMenu = $("tMenu");
-    const tabKoma = $("tabKoma");
-    const tabKaku = $("tabKaku");
-    const tabMiru = $("tabMiru");
-    const tabMenu = $("tabMenu");
-
-    const toast = $("toast");
-    const toastText = $("toastText");
-
-    // ====== 状態 ======
-    let octx, dctx, pctx;
-
-    const LS_KEY = "anim5s_collab_v1";
-    const LS_WS  = "anim5s_ws_base_v1";
-
-    let state = {
-      roomId: null,
-      playerId: null,
-      theme: null,
-      cur: 0,
-      tool: "pen",
-      color: "#141428",
-      size: 6,
-      loop: false,
-      onion: true,
-      frames: Array.from({length: COUNT}, () => ({img:null})),
-      logs: [] // 見えない
+    const tabs = {
+      lobby: $('tabLobby'),
+      create: $('tabCreate'),
+      priv: $('tabPrivate'),
+      gallery: $('tabGallery'),
+      kaku: $('tabKaku'),
+      miru: $('tabMiru'),
+      menu: $('tabMenu'),
     };
 
-    let isDown = false;
-    let last = null;
-    let undoStack = [];
-    const UNDO_MAX = 18;
+    const tKaku = $('tKaku');
+    const tMiru = $('tMiru');
+    const tMenu = $('tMenu');
+    const tLobby = $('tLobby');
 
-    let previewMode = "none"; // none / playing / paused
-    let playStart = 0;
-    let playPosSec = 0;
-    let raf = 0;
-    let imgs = [];
-
-    // ====== WebSocket ======
-    let ws = null;
-    let wsWanted = false;
-    let reconnectTimer = 0;
-    let backoff = 600;
-
-    // ====== Utils ======
-    const clamp = (n,a,b)=>Math.max(a, Math.min(b,n));
-
-    function toastShow(s){
-      toastText.textContent = s;
-      toast.classList.add("on");
-      clearTimeout(toast._t);
-      toast._t = setTimeout(()=>toast.classList.remove("on"), 1600);
+    const toast = $('toast');
+    const toastText = $('toastText');
+    let toastTimer = null;
+    function say(msg, ms=1400){
+      toastText.textContent = msg;
+      toast.classList.add('on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('on'), ms);
     }
 
-    function log(s){
-      state.logs.unshift(`${new Date().toLocaleTimeString()} ${s}`);
-      if (state.logs.length > 200) state.logs.length = 200;
+    // ====== 内部ログ（非表示） ======
+    const internalLog = [];
+    function log(type, data){
+      internalLog.push({ t: Date.now(), type, data });
+      if (internalLog.length > 5000) internalLog.splice(0, 1000);
+      // ユーザーには見せない
     }
 
-    function randRoom(){
-      const abc = "abcdefghjkmnpqrstuvwxyz23456789";
-      let s = "";
-      for (let i=0;i<7;i++) s += abc[(Math.random()*abc.length)|0];
-      return s;
+    // ====== ルーム/状態 ======
+    const state = {
+      screen: 'lobby',
+      tab: 'lobby',
+      wsBase: localStorage.getItem('anim5s_wsBase') || '',
+      room: null, // {roomId, visibility, theme, canEdit, assignedFrame, reservationToken, reservationExpiresAt}
+      frames: Array.from({length: FRAME_COUNT}, () => ({
+        filled:false,
+        img: null, // ImageBitmap or HTMLImageElement
+        url: null, // objectURL
+      })),
+      localDraft: Array.from({length: FRAME_COUNT}, () => null), // dataURL(webp/png)
+      currentFrame: 0,
+      tool: 'pen',
+      color: '#151528',
+      size: 6,
+      onion: true,
+      loop: false,
+      playing: false,
+      playFrame: 0,
+      playT: 0,
+      dirty: false,
+      lastAutoSend: 0,
+      myRooms: loadMyRooms(),
+    };
+
+    // ====== テーマ（スタンダード） ======
+    const STD_THEMES = [
+      '歩く犬','通勤時間','雨の日','ねこが伸びる','信号待ち','おにぎり','ジャンプ','落ちる','走る人','電車が来る',
+      '寝起き','ラーメン','掃除機','スマホ通知','お風呂','買い物袋','風で帽子が飛ぶ','エレベーター','あくび','雪だるま',
+      '自転車','階段','コーヒー','くしゃみ','カーテン','ドアが開く','転ぶ','まばたき','猫パンチ','犬がしっぽ振る'
+    ];
+
+    // ====== 画面切替 ======
+    function showTab(name){
+      Object.values(tabs).forEach(t => t.classList.remove('on'));
+      if (tabs[name]) tabs[name].classList.add('on');
+      state.tab = name;
+      // 下バー
+      [tKaku, tMiru, tMenu, tLobby].forEach(b => b.classList.remove('on'));
+      if (name==='kaku') tKaku.classList.add('on');
+      if (name==='miru') tMiru.classList.add('on');
+      if (name==='menu') tMenu.classList.add('on');
+      if (name==='lobby') tLobby.classList.add('on');
+      if (name==='create') tLobby.classList.add('on');
+      if (name==='priv') tLobby.classList.add('on');
+      if (name==='gallery') tLobby.classList.add('on');
+
+      // キャンバス触れる？
+      const canDraw = state.room && state.room.canEdit !== 'view' && state.tab === 'kaku';
+      stage.classList.toggle('preview', state.tab === 'miru' || (state.room && state.room.canEdit==='view'));
+      cDraw.style.pointerEvents = canDraw ? 'auto' : 'none';
     }
 
-    function parseQS(){
-      const u = new URL(location.href);
-      const room = u.searchParams.get("room");
-      const server = u.searchParams.get("server");
-      return { room, server };
+    function goLobby(){
+      stopPlayback();
+      state.screen = 'lobby';
+      state.room = null;
+      clearRoomUI();
+      resetFramesLocal();
+      showTab('lobby');
+      say('ロビー');
     }
 
-    function setQS(roomId){
-      const u = new URL(location.href);
-      u.searchParams.set("room", roomId);
-      history.replaceState(null, "", u.toString());
+    function clearRoomUI(){
+      themeLine.textContent = 'お題：-';
+      chipRoom.style.display = 'none';
+      chipKoma.textContent = 'コマ -';
+      badge.textContent = '-';
     }
 
-    async function copyText(s){
-      if (navigator.clipboard?.writeText){
-        try{ await navigator.clipboard.writeText(s); return; }catch{}
-      }
-      const ta = document.createElement("textarea");
-      ta.value = s;
-      document.body.appendChild(ta);
-      ta.select();
-      try{ document.execCommand("copy"); }catch{}
-      ta.remove();
-    }
-
-    function wsBaseToWsUrl(base){
-      base = (base||"").trim();
-      if (!base) return "";
+    // ====== ローカル保存（ギャラリー） ======
+    function loadMyRooms(){
       try{
-        if (base.startsWith("ws://") || base.startsWith("wss://")){
-          const u = new URL(base);
-          if (!u.pathname || u.pathname === "/") u.pathname = "/ws";
-          return u.toString();
-        }
-        const u = new URL(base);
-        if (u.protocol === "http:") u.protocol = "ws:";
-        if (u.protocol === "https:") u.protocol = "wss:";
-        if (!u.pathname || u.pathname === "/") u.pathname = "/ws";
-        return u.toString();
-      }catch{
-        return "";
-      }
+        const raw = localStorage.getItem('anim5s_myRooms');
+        const arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) return [];
+        return arr;
+      }catch{ return []; }
+    }
+    function saveMyRooms(){
+      localStorage.setItem('anim5s_myRooms', JSON.stringify(state.myRooms.slice(0, 200)));
+    }
+    function touchMyRoom(entry){
+      // entry: {roomId, theme, visibility, pass?}
+      const i = state.myRooms.findIndex(x => x.roomId === entry.roomId);
+      const now = Date.now();
+      const v = {
+        roomId: entry.roomId,
+        theme: entry.theme || '-',
+        visibility: entry.visibility || 'public',
+        // privateの合言葉は端末内に保存（ギャラリー閲覧に使う）
+        pass: entry.pass || (i>=0 ? state.myRooms[i].pass : undefined),
+        last: now,
+      };
+      if (i>=0) state.myRooms.splice(i,1);
+      state.myRooms.unshift(v);
+      saveMyRooms();
     }
 
-    function setNet(ok, bad=false){
-      netDot.classList.toggle("on", ok);
-      netDot.classList.toggle("bad", bad);
-      netText.textContent = ok ? "通信: ON" : "通信: OFF";
-    }
-
-    function send(msg){
-      if (!ws || ws.readyState !== 1) return false;
-      try{
-        ws.send(JSON.stringify(msg));
-        return true;
-      }catch{ return false; }
-    }
-
-    function connect(){
-      clearTimeout(reconnectTimer);
-      if (!wsWanted) return;
-
-      const base = (localStorage.getItem(LS_WS) || "").trim();
-      const url = wsBaseToWsUrl(base);
-      if (!url){
-        toastShow("サーバーURLがない");
-        setNet(false, true);
+    function renderGallery(){
+      const list = $('galleryList');
+      list.innerHTML = '';
+      if (!state.myRooms.length){
+        const d = document.createElement('div');
+        d.className='item';
+        d.innerHTML = '<div class="a"><div class="id">まだない</div><div class="sub">描いた部屋がここに出る</div></div>';
+        list.appendChild(d);
         return;
       }
-
-      if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
-
-      try{
-        ws = new WebSocket(url);
-      }catch{
-        setNet(false, true);
-        toastShow("つなげない");
-        return;
+      for (const r of state.myRooms){
+        const it = document.createElement('div');
+        it.className='item';
+        const sub = `${r.theme} / ${r.visibility==='private' ? 'プライベート' : '公開'}`;
+        it.innerHTML = `
+          <div class="a">
+            <div class="id">ID ${escapeHtml(r.roomId)}</div>
+            <div class="sub">${escapeHtml(sub)}</div>
+          </div>
+          <div class="row" style="flex:0 0 auto; gap:8px;">
+            <button class="btn sub" style="min-width:92px; padding:10px 12px;" data-act="view">見る</button>
+          </div>
+        `;
+        it.querySelector('[data-act="view"]').addEventListener('click', () => {
+          joinView(r.roomId, r.visibility, r.pass);
+        });
+        list.appendChild(it);
       }
-
-      ws.onopen = ()=>{
-        backoff = 600;
-        setNet(true);
-        toastShow("つながった");
-        const roomId = (roomInp.value || state.roomId || "").trim();
-        if (roomId) joinRoom(roomId);
-      };
-
-      ws.onmessage = (ev)=>{
-        let m = null;
-        try{ m = JSON.parse(ev.data); }catch{ return; }
-        if (!m || typeof m.t !== "string") return;
-
-        if (m.t === "welcome"){
-          state.playerId = m.playerId || state.playerId;
-          log(`welcome ${state.playerId||"-"}`);
-          return;
-        }
-        if (m.t === "room_state"){
-          applyRoomState(m.data);
-          return;
-        }
-        if (m.t === "frame_committed"){
-          const d = m.data || {};
-          const i = d.frameIndex|0;
-          const img = d.img;
-          if (i>=0 && i<COUNT && typeof img === "string"){
-            state.frames[i].img = img;
-            if (i === state.cur) renderFrame();
-            renderGrid();
-            renderOnion();
-            if (d.by && d.by !== state.playerId){
-              toastShow(`更新: コマ${i+1}`);
-            }
-          }
-          if (d.theme) applyTheme(d.theme);
-          return;
-        }
-        if (m.t === "theme_changed"){
-          if (m.data?.theme) applyTheme(m.data.theme);
-          toastShow("お題が変わった");
-          return;
-        }
-        if (m.t === "error"){
-          toastShow(m.message || "エラー");
-          return;
-        }
-      };
-
-      ws.onclose = ()=>{
-        setNet(false);
-        if (!wsWanted) return;
-        scheduleReconnect();
-      };
-      ws.onerror = ()=>{
-        setNet(false, true);
-      };
     }
 
-    function scheduleReconnect(){
-      clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(()=>{
-        connect();
-        backoff = Math.min(8000, Math.floor(backoff*1.6));
-      }, backoff);
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"]+/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]||m));
     }
 
-    function joinRoom(roomId){
-      roomId = (roomId||"").trim();
-      if (!roomId) return;
-
-      state.roomId = roomId;
-      roomInp.value = roomId;
-      setQS(roomId);
-
-      send({ v:1, t:"join", roomId });
-      send({ v:1, t:"resync", roomId });
-      toastShow(`部屋: ${roomId}`);
-      log(`join ${roomId}`);
-      saveLocalSoon();
+    // ====== キャンバス描画 ======
+    function fillWhite(targetCtx){
+      targetCtx.save();
+      targetCtx.setTransform(1,0,0,1,0,0);
+      targetCtx.globalCompositeOperation = 'source-over';
+      targetCtx.fillStyle = '#fff';
+      targetCtx.fillRect(0,0,W,H);
+      targetCtx.restore();
     }
 
-    function applyTheme(theme){
-      state.theme = theme;
-      const title = theme?.title || "-";
-      const note  = theme?.note || "-";
-      odai.textContent = title;
-      odai2.textContent = note;
-      themeLine.textContent = `お題：${title}`;
-      saveLocalSoon();
-    }
-
-    function applyRoomState(d){
-      if (!d) return;
-      if (d.roomId) state.roomId = d.roomId;
-      if (d.theme) applyTheme(d.theme);
-      if (Array.isArray(d.frames) && d.frames.length === COUNT){
-        for (let i=0;i<COUNT;i++){
-          const img = d.frames[i];
-          state.frames[i].img = (typeof img === "string") ? img : null;
-        }
-      }
-      roomInp.value = state.roomId || "";
-      updateTop();
-      renderGrid();
-      renderFrame();
+    function drawFrameToMain(idx){
+      fillWhite(ctx);
+      const img = getBestImage(idx);
+      if (img) ctx.drawImage(img, 0, 0, W, H);
+      state.dirty = false;
       renderOnion();
-      toastShow("同期した");
-      log("resync");
-      saveLocalSoon();
-    }
-
-    // ====== Canvas / UI ======
-    function setup(){
-      onion.width = RES; onion.height = RES;
-      draw.width  = RES; draw.height  = RES;
-      play.width  = RES; play.height  = RES;
-
-      octx = onion.getContext("2d");
-      dctx = draw.getContext("2d", { willReadFrequently:true });
-      pctx = play.getContext("2d");
-
-      octx.imageSmoothingEnabled = false;
-      dctx.imageSmoothingEnabled = true;
-      pctx.imageSmoothingEnabled = false;
-    }
-
-    function setTab(name){
-      const map = {koma:tabKoma, kaku:tabKaku, miru:tabMiru, menu:tabMenu};
-      const btns = {koma:tKoma, kaku:tKaku, miru:tMiru, menu:tMenu};
-      Object.keys(map).forEach(k=>{
-        map[k].classList.toggle("on", k===name);
-        btns[k].classList.toggle("on", k===name);
-      });
-      if (name !== "miru") exitPreview();
-    }
-
-    function updateTop(){
-      const t = `コマ ${state.cur+1} / ${COUNT}`;
-      badge.textContent = t;
-      $("chipKoma").textContent = t;
-      slider.value = String(state.cur);
-    }
-
-    function updateTool(){
-      const isPen = state.tool === "pen";
-      pen.classList.toggle("ok", isPen);
-      pen.classList.toggle("sub", !isPen);
-      erase.classList.toggle("ok", !isPen);
-      erase.classList.toggle("sub", isPen);
-
-      w.textContent = String(state.size);
-      size.value = String(state.size);
-      color.value = state.color;
-
-      onionBtn.textContent = `前: ${state.onion ? "ON" : "OFF"}`;
-      document.documentElement.style.setProperty("--onionOpacity", state.onion ? ".20" : "0");
-
-      loopBtn.textContent = `くり返し: ${state.loop ? "ON" : "OFF"}`;
+      renderKomaLabels();
     }
 
     function renderOnion(){
-      octx.clearRect(0,0,RES,RES);
+      fillWhite(octx);
+      octx.clearRect(0,0,W,H);
       if (!state.onion) return;
-      const prevI = state.cur - 1;
-      if (prevI < 0) return;
-      const imgUrl = state.frames[prevI]?.img;
-      if (!imgUrl) return;
-
-      const im = new Image();
-      const cur = state.cur;
-      im.decoding = "async";
-      im.onload = () => {
-        if (state.cur !== cur) return;
-        octx.clearRect(0,0,RES,RES);
-        octx.drawImage(im, 0, 0, RES, RES);
-      };
-      im.src = imgUrl;
+      const prev = state.currentFrame - 1;
+      if (prev < 0) return;
+      const img = getBestImage(prev);
+      if (!img) return;
+      octx.save();
+      octx.globalAlpha = 1; // opacityはCSSで
+      octx.drawImage(img, 0, 0, W, H);
+      octx.restore();
     }
 
-    function renderFrame(){
-      dctx.clearRect(0,0,RES,RES);
-      undoStack = [];
+    function getBestImage(idx){
+      // 優先：ローカル下書き -> サーバー画像
+      const draftUrl = state.localDraft[idx];
+      if (draftUrl){
+        const im = new Image();
+        // 同期のたびに作るのは重いので、簡易：draftは表示の時だけ使う
+        // ただ、onionやdrawで使うので、キャッシュする
+      }
+      const f = state.frames[idx];
+      if (f && f.img) return f.img;
+      const d = draftCache.get(idx);
+      if (d) return d;
+      // draftがあれば読み込み
+      if (draftUrl){
+        const im = new Image();
+        im.decoding='async';
+        im.src = draftUrl;
+        draftCache.set(idx, im);
+        return im;
+      }
+      return null;
+    }
 
-      const imgUrl = state.frames[state.cur]?.img;
-      if (!imgUrl){
-        renderOnion();
+    function renderKomaLabels(){
+      const r = state.room;
+      if (!r){
+        chipKoma.textContent = 'コマ -';
+        badge.textContent = '-';
         return;
       }
-
-      const im = new Image();
-      const cur = state.cur;
-      im.decoding = "async";
-      im.onload = () => {
-        if (state.cur !== cur) return;
-        dctx.clearRect(0,0,RES,RES);
-        dctx.drawImage(im, 0, 0, RES, RES);
-        renderOnion();
-      };
-      im.src = imgUrl;
-    }
-
-    function renderGrid(){
-      if (!grid._made){
-        grid._made = true;
-        grid.innerHTML = "";
-        for (let i=0;i<COUNT;i++){
-          const b = document.createElement("button");
-          b.className = "f";
-          b.textContent = String(i+1);
-          b.addEventListener("click", ()=>{
-            closeList();
-            select(i);
-          });
-          grid.appendChild(b);
-        }
+      if (r.canEdit === 'assigned'){
+        const n = r.assignedFrame + 1;
+        chipKoma.textContent = `あなたのコマ ${n}`;
+        badge.textContent = `コマ ${n}`;
+      } else {
+        chipKoma.textContent = `コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
+        badge.textContent = `コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
       }
-      const buttons = grid.children;
-      for (let i=0;i<COUNT;i++){
-        const b = buttons[i];
-        b.classList.toggle("on", i === state.cur);
-        b.classList.toggle("empty", !state.frames[i]?.img);
+
+      // 予約残り（ランダム/公開）
+      if (r.reservationExpiresAt){
+        const left = Math.max(0, Math.ceil((r.reservationExpiresAt - Date.now())/1000));
+        if (left > 0) chipKoma.textContent += ` / のこり ${left}s`;
       }
     }
+
+    function resetFramesLocal(){
+      // objectURL解放
+      for (const f of state.frames){
+        if (f.url) URL.revokeObjectURL(f.url);
+        f.filled = false; f.img = null; f.url = null;
+      }
+      draftCache.clear();
+      state.localDraft.fill(null);
+      state.currentFrame = 0;
+      fillWhite(ctx); fillWhite(octx); fillWhite(pctx);
+      ctx.clearRect(0,0,W,H); octx.clearRect(0,0,W,H); pctx.clearRect(0,0,W,H);
+    }
+
+    // draft画像キャッシュ
+    const draftCache = new Map();
+
+    function saveLocalDraft(){
+      if (!state.room) return;
+      const idx = state.currentFrame;
+      try{
+        // webpがあれば軽い
+        let url = '';
+        try{ url = cDraw.toDataURL('image/webp', 0.82); }
+        catch{ url = cDraw.toDataURL('image/png'); }
+        state.localDraft[idx] = url;
+        draftCache.delete(idx);
+
+        const key = `anim5s_room_${state.room.roomId}_frame_${idx}`;
+        localStorage.setItem(key, url);
+        log('autosave', {roomId: state.room.roomId, frame: idx});
+      }catch(e){
+        log('autosave_fail', String(e));
+      }
+    }
+
+    function loadLocalDraftsForRoom(roomId){
+      for (let i=0;i<FRAME_COUNT;i++){
+        const key = `anim5s_room_${roomId}_frame_${i}`;
+        const v = localStorage.getItem(key);
+        state.localDraft[i] = v || null;
+      }
+      draftCache.clear();
+    }
+
+    function clearLocalDraftsForRoom(roomId){
+      for (let i=0;i<FRAME_COUNT;i++){
+        localStorage.removeItem(`anim5s_room_${roomId}_frame_${i}`);
+      }
+      say('この端末の保存を消した');
+    }
+
+    // ====== 入力（線が途切れないように補間） ======
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+    let stroke = null; // {points:[{x,y,t}], tool,color,size}
+    const undoStack = [];
 
     function pushUndo(){
       try{
-        const snap = dctx.getImageData(0,0,RES,RES);
-        undoStack.push(snap);
-        if (undoStack.length > UNDO_MAX) undoStack.shift();
+        const img = ctx.getImageData(0,0,W,H);
+        undoStack.push(img);
+        if (undoStack.length > 25) undoStack.shift();
       }catch{}
     }
 
-    function doUndo(){
-      const snap = undoStack.pop();
-      if (!snap) return;
-      dctx.putImageData(snap, 0, 0);
-      commit("戻す");
+    function setTool(t){
+      state.tool = t;
+      $('pen').className = 'btn ' + (t==='pen' ? 'ok':'sub');
+      $('erase').className = 'btn ' + (t==='erase' ? 'ok':'sub');
     }
 
-    function compositeToPngDataUrl(){
-      const c = document.createElement("canvas");
-      c.width = RES; c.height = RES;
-      const ctx = c.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0,0,RES,RES);
-      ctx.drawImage(draw, 0, 0);
-      return c.toDataURL("image/png");
+    function drawLine(ax, ay, bx, by){
+      const dx = bx-ax, dy = by-ay;
+      const dist = Math.hypot(dx,dy);
+      const step = Math.max(1, Math.floor(dist/1.2));
+      for (let i=1;i<=step;i++){
+        const t = i/step;
+        const x = ax + dx*t;
+        const y = ay + dy*t;
+        paintPoint(x,y);
+      }
     }
 
-    function saveLocalSoon(){
-      clearTimeout(saveLocalSoon._t);
-      saveLocalSoon._t = setTimeout(saveLocal, 250);
+    function paintPoint(x,y){
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = state.size;
+      if (state.tool==='erase'){
+        // 白で塗る
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#ffffff';
+        ctx.fillStyle = '#ffffff';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = state.color;
+        ctx.fillStyle = state.color;
+      }
+      ctx.beginPath();
+      ctx.arc(x,y, state.size/2, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
     }
 
-    function saveLocal(){
-      try{
-        const data = {
-          v: 1,
-          at: Date.now(),
-          roomId: state.roomId,
-          theme: state.theme,
-          cur: state.cur,
-          tool: state.tool,
-          color: state.color,
-          size: state.size,
-          loop: state.loop,
-          onion: state.onion,
-          frames: state.frames.map(f=>f.img)
-        };
-        localStorage.setItem(LS_KEY, JSON.stringify(data));
-      }catch{}
+    function toCanvasXY(ev){
+      const rect = cDraw.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width * W;
+      const y = (ev.clientY - rect.top) / rect.height * H;
+      return { x: Math.max(0, Math.min(W, x)), y: Math.max(0, Math.min(H, y)) };
     }
 
-    function loadLocal(){
-      try{
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return false;
-        const d = JSON.parse(raw);
-        if (!d || d.v !== 1) return false;
-
-        if (Array.isArray(d.frames) && d.frames.length === COUNT){
-          for (let i=0;i<COUNT;i++){
-            const img = d.frames[i];
-            state.frames[i].img = (typeof img === "string") ? img : null;
-          }
-        }
-        if (d.theme) state.theme = d.theme;
-        if (typeof d.roomId === "string") state.roomId = d.roomId;
-        if (Number.isInteger(d.cur)) state.cur = clamp(d.cur, 0, COUNT-1);
-        if (d.tool === "pen" || d.tool === "erase") state.tool = d.tool;
-        if (typeof d.color === "string") state.color = d.color;
-        if (Number.isFinite(d.size)) state.size = clamp(d.size, 1, 40);
-        state.loop = !!d.loop;
-        state.onion = !!d.onion;
-        return true;
-      }catch{ return false; }
+    function canEditNow(){
+      const r = state.room;
+      if (!r) return false;
+      if (r.canEdit === 'view') return false;
+      if (r.canEdit === 'assigned') return state.currentFrame === r.assignedFrame;
+      // any
+      return true;
     }
 
-    function commit(why){
-      const img = compositeToPngDataUrl();
-      state.frames[state.cur].img = img;
-      renderGrid();
+    function onPointerDown(ev){
+      if (!canEditNow()) return;
+      drawing = true;
+      pushUndo();
+      const p = toCanvasXY(ev);
+      lastX = p.x; lastY = p.y;
+      paintPoint(lastX,lastY);
+      state.dirty = true;
+      stroke = { tool: state.tool, color: state.color, size: state.size, points: [{x:lastX,y:lastY,t:Date.now()}] };
+      log('stroke_start', {frame: state.currentFrame});
+      cDraw.setPointerCapture(ev.pointerId);
+    }
+
+    function onPointerMove(ev){
+      if (!drawing) return;
+      if (!canEditNow()) return;
+      const events = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
+      for (const e of events){
+        const p = toCanvasXY(e);
+        drawLine(lastX,lastY,p.x,p.y);
+        lastX = p.x; lastY = p.y;
+        stroke?.points.push({x:lastX,y:lastY,t:Date.now()});
+      }
+      state.dirty = true;
+    }
+
+    async function onPointerUp(ev){
+      if (!drawing) return;
+      drawing = false;
+      cDraw.releasePointerCapture(ev.pointerId);
+      stroke && log('stroke_end', {frame: state.currentFrame, points: stroke.points.length});
+      stroke = null;
+      saveLocalDraft();
       renderOnion();
-      updateTop();
-      saveLocalSoon();
-
-      if (ws && ws.readyState === 1 && state.roomId){
-        send({ v:1, t:"submit_frame", roomId: state.roomId, frameIndex: state.cur, img });
-      }
-
-      log(`更新: コマ${state.cur+1} (${why})`);
+      await autoSendMaybe();
     }
 
-    function pointerPos(e){
-      const rect = draw.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width  * RES;
-      const y = (e.clientY - rect.top)  / rect.height * RES;
-      return {x, y};
-    }
+    cDraw.addEventListener('pointerdown', onPointerDown);
+    cDraw.addEventListener('pointermove', onPointerMove);
+    cDraw.addEventListener('pointerup', onPointerUp);
+    cDraw.addEventListener('pointercancel', onPointerUp);
 
-    function begin(pt){
+    // ====== UI（描く） ======
+    $('color').addEventListener('input', (e) => state.color = e.target.value);
+    $('size').addEventListener('input', (e) => {
+      state.size = Number(e.target.value);
+      $('w').textContent = String(state.size);
+    });
+    $('w').textContent = String(state.size);
+
+    $('pen').addEventListener('click', () => setTool('pen'));
+    $('erase').addEventListener('click', () => setTool('erase'));
+
+    $('undo').addEventListener('click', () => {
+      if (!canEditNow()) return;
+      const img = undoStack.pop();
+      if (!img) return;
+      ctx.putImageData(img,0,0);
+      state.dirty = true;
+      saveLocalDraft();
+      renderOnion();
+    });
+
+    $('clear').addEventListener('click', () => {
+      if (!canEditNow()) return;
       pushUndo();
-      isDown = true;
-      last = pt;
-
-      dctx.lineCap = "round";
-      dctx.lineJoin = "round";
-      dctx.lineWidth = state.size;
-
-      if (state.tool === "erase"){
-        dctx.globalCompositeOperation = "destination-out";
-        dctx.strokeStyle = "rgba(0,0,0,1)";
-      }else{
-        dctx.globalCompositeOperation = "source-over";
-        dctx.strokeStyle = state.color;
-      }
-
-      dctx.beginPath();
-      dctx.moveTo(pt.x, pt.y);
-      dctx.lineTo(pt.x + 0.01, pt.y + 0.01);
-      dctx.stroke();
-    }
-
-    function move(pt){
-      if (!isDown || !last) return;
-      dctx.beginPath();
-      dctx.moveTo(last.x, last.y);
-      dctx.lineTo(pt.x, pt.y);
-      dctx.stroke();
-      last = pt;
-    }
-
-    function end(){
-      if (!isDown) return;
-      isDown = false;
-      last = null;
-      commit("描く");
-    }
-
-    function select(i){
-      i = clamp(i, 0, COUNT-1);
-      state.cur = i;
-      updateTop();
-      renderFrame();
-      renderGrid();
-      saveLocalSoon();
-      log(`移動: コマ${i+1}`);
-    }
-
-    // ====== 再生（停止したらそのフレームで止まる） ======
-    function prepImgs(){
-      imgs = state.frames.map(f=>{
-        if (!f.img) return null;
-        const im = new Image();
-        im.decoding = "async";
-        im.src = f.img;
-        return im;
-      });
-    }
-
-    function paintPlay(idx){
-      pctx.clearRect(0,0,RES,RES);
-      pctx.fillStyle = "#fff";
-      pctx.fillRect(0,0,RES,RES);
-      const im = imgs[idx];
-      if (!im) return;
-      if (im.complete && im.naturalWidth > 0){
-        pctx.imageSmoothingEnabled = false;
-        pctx.drawImage(im, 0, 0, RES, RES);
-      }
-    }
-
-    function startPlay(){
-      if (previewMode === "playing") return;
-      prepImgs();
-      stage.classList.add("preview");
-
-      if (previewMode === "paused"){
-        playStart = performance.now() - playPosSec * 1000;
-      }else{
-        playPosSec = 0;
-        playStart = performance.now();
-      }
-      previewMode = "playing";
-      tick();
-    }
-
-    function pausePlay(){
-      if (previewMode !== "playing") return;
-      previewMode = "paused";
-      cancelAnimationFrame(raf);
-    }
-
-    function exitPreview(){
-      if (previewMode === "none") return;
-      previewMode = "none";
-      cancelAnimationFrame(raf);
-      stage.classList.remove("preview");
-      pf.textContent = "-";
-      pt.textContent = "0.00";
-      bar.style.width = "0%";
-    }
-
-    function tick(){
-      if (previewMode !== "playing") return;
-
-      const nowP = performance.now();
-      const sec = (nowP - playStart) / 1000;
-      playPosSec = sec;
-
-      const dur = COUNT / FPS;
-      let fi = Math.floor(sec * FPS);
-
-      if (fi >= COUNT){
-        if (state.loop){
-          playStart = nowP;
-          playPosSec = 0;
-          fi = 0;
-        }else{
-          fi = COUNT - 1;
-          paintPlay(fi);
-          pf.textContent = `コマ${fi+1}`;
-          pt.textContent = dur.toFixed(2);
-          bar.style.width = "100%";
-          previewMode = "paused";
-          return;
-        }
-      }
-
-      paintPlay(fi);
-      pf.textContent = `コマ${fi+1}`;
-      pt.textContent = sec.toFixed(2);
-      bar.style.width = `${clamp((sec/dur)*100, 0, 100)}%`;
-
-      raf = requestAnimationFrame(tick);
-    }
-
-    function openList(){
-      back.classList.add("on");
-      back.setAttribute("aria-hidden", "false");
-    }
-    function closeList(){
-      back.classList.remove("on");
-      back.setAttribute("aria-hidden", "true");
-    }
-
-    // ====== GIF 保存（Web-safe 256色） ======
-    function buildWebSafePalette256(){
-      const pal = new Uint8Array(256*3);
-      const steps = [0,51,102,153,204,255];
-      let idx = 0;
-      for (let r=0;r<6;r++){
-        for (let g=0;g<6;g++){
-          for (let b=0;b<6;b++){
-            pal[idx*3+0] = steps[r];
-            pal[idx*3+1] = steps[g];
-            pal[idx*3+2] = steps[b];
-            idx++;
-          }
-        }
-      }
-      for (; idx<256; idx++){
-        pal[idx*3+0] = 255;
-        pal[idx*3+1] = 255;
-        pal[idx*3+2] = 255;
-      }
-      return pal;
-    }
-
-    function quantWebSafeIndex(r,g,b){
-      const r6 = Math.max(0, Math.min(5, Math.round(r/51)));
-      const g6 = Math.max(0, Math.min(5, Math.round(g/51)));
-      const b6 = Math.max(0, Math.min(5, Math.round(b/51)));
-      return (r6*36 + g6*6 + b6) & 255;
-    }
-
-    class ChunkWriter{
-      constructor(cap=1<<20){
-        this.buf = new Uint8Array(cap);
-        this.pos = 0;
-        this.chunks = [];
-      }
-      byte(v){
-        if (this.pos >= this.buf.length) this.flush();
-        this.buf[this.pos++] = v & 255;
-      }
-      word(v){ this.byte(v); this.byte(v>>8); }
-      str(s){ for (let i=0;i<s.length;i++) this.byte(s.charCodeAt(i)); }
-      bytes(u8){
-        let i=0;
-        while (i < u8.length){
-          const room = this.buf.length - this.pos;
-          if (room === 0){ this.flush(); continue; }
-          const take = Math.min(room, u8.length - i);
-          this.buf.set(u8.subarray(i, i+take), this.pos);
-          this.pos += take;
-          i += take;
-        }
-      }
-      flush(){
-        if (this.pos > 0){
-          this.chunks.push(this.buf.slice(0, this.pos));
-          this.pos = 0;
-        }
-      }
-      blob(type){
-        this.flush();
-        return new Blob(this.chunks, {type});
-      }
-    }
-
-    function writeSubBlocks(w, data){
-      let i=0;
-      while (i < data.length){
-        const n = Math.min(255, data.length - i);
-        w.byte(n);
-        w.bytes(data.subarray(i, i+n));
-        i += n;
-      }
-      w.byte(0);
-    }
-
-    function lzwEncodeWithResets(indices, minCodeSize, resetEvery){
-      const CLEAR = 1 << minCodeSize;
-      const EOI   = CLEAR + 1;
-      const MAX   = 4095;
-
-      let next = EOI + 1;
-      let codeSize = minCodeSize + 1;
-      const dict = new Map();
-
-      const out = [];
-      let cur = 0;
-      let bits = 0;
-
-      const write = (code)=>{
-        cur |= (code << bits);
-        bits += codeSize;
-        while (bits >= 8){
-          out.push(cur & 255);
-          cur >>= 8;
-          bits -= 8;
-        }
-      };
-
-      const reset = ()=>{
-        dict.clear();
-        next = EOI + 1;
-        codeSize = minCodeSize + 1;
-      };
-
-      reset();
-      write(CLEAR);
-
-      let prefix = indices[0];
-
-      for (let i=1;i<indices.length;i++){
-        if (resetEvery && (i % resetEvery) === 0){
-          write(prefix);
-          write(CLEAR);
-          reset();
-          prefix = indices[i];
-          continue;
-        }
-
-        const k = indices[i];
-        const key = (prefix << 8) | k;
-        const hit = dict.get(key);
-        if (hit !== undefined){
-          prefix = hit;
-        }else{
-          write(prefix);
-
-          if (next <= MAX){
-            dict.set(key, next++);
-            if (next === (1 << codeSize) && codeSize < 12) codeSize++;
-          }else{
-            write(CLEAR);
-            reset();
-          }
-          prefix = k;
-        }
-      }
-
-      write(prefix);
-      write(EOI);
-      if (bits > 0) out.push(cur & 255);
-      return new Uint8Array(out);
-    }
-
-    function makeDelays(){
-      const delays = new Uint16Array(COUNT);
-      const ideal = 100 / FPS;
-      const target = 500;
-      let rem = 0;
-      let sum = 0;
-      for (let i=0;i<COUNT;i++){
-        rem += ideal;
-        let d = Math.floor(rem + 1e-6);
-        rem -= d;
-        if (d < 1) d = 1;
-        delays[i] = d;
-        sum += d;
-      }
-      const fix = target - sum;
-      delays[COUNT-1] = Math.max(1, delays[COUNT-1] + fix);
-      return delays;
-    }
-
-    function loadImage(url){
-      return new Promise((resolve, reject)=>{
-        const im = new Image();
-        im.decoding = "async";
-        im.onload = ()=> resolve(im);
-        im.onerror = reject;
-        im.src = url;
-      });
-    }
-
-    async function saveAsGif(){
-      saveGifBtn.disabled = true;
-      try{
-        toastShow("GIFを作る…");
-
-        const pal = buildWebSafePalette256();
-        const delays = makeDelays();
-        const bgIndex = 215;
-
-        const w = new ChunkWriter(1<<20);
-
-        w.str("GIF89a");
-        w.word(RES); w.word(RES);
-        w.byte(0xF7);
-        w.byte(bgIndex);
-        w.byte(0);
-        w.bytes(pal);
-
-        w.byte(0x21); w.byte(0xFF); w.byte(11);
-        w.str("NETSCAPE2.0");
-        w.byte(3); w.byte(1); w.word(0); w.byte(0);
-
-        const c = document.createElement("canvas");
-        c.width = RES; c.height = RES;
-        const ctx = c.getContext("2d", { willReadFrequently:true });
-        ctx.imageSmoothingEnabled = false;
-
-        for (let fi=0; fi<COUNT; fi++){
-          toastShow(`GIF ${fi+1}/${COUNT}`);
-
-          ctx.clearRect(0,0,RES,RES);
-          ctx.fillStyle = "#fff";
-          ctx.fillRect(0,0,RES,RES);
-
-          const url = state.frames[fi]?.img;
-          if (url){
-            const im = await loadImage(url);
-            ctx.drawImage(im, 0, 0, RES, RES);
-          }
-
-          const data = ctx.getImageData(0,0,RES,RES).data;
-          const idxs = new Uint8Array(RES*RES);
-          let p = 0;
-          for (let i=0; i<data.length; i+=4){
-            idxs[p++] = quantWebSafeIndex(data[i], data[i+1], data[i+2]);
-          }
-
-          w.byte(0x21); w.byte(0xF9); w.byte(4);
-          w.byte(0b00001000);
-          w.word(delays[fi]);
-          w.byte(0);
-          w.byte(0);
-
-          w.byte(0x2C);
-          w.word(0); w.word(0);
-          w.word(RES); w.word(RES);
-          w.byte(0);
-
-          const minCodeSize = 8;
-          w.byte(minCodeSize);
-          const lzw = lzwEncodeWithResets(idxs, minCodeSize, RES);
-          writeSubBlocks(w, lzw);
-        }
-
-        w.byte(0x3B);
-
-        const blob = w.blob("image/gif");
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const name = (state.theme?.title || "anim").replace(/[^\p{L}\p{N}_-]/gu, "_");
-        a.href = url;
-        a.download = `5s_${name}_${Date.now()}.gif`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        toastShow("GIFを保存した");
-      }catch(e){
-        console.error(e);
-        toastShow("GIFがダメだった");
-      }finally{
-        saveGifBtn.disabled = false;
-      }
-    }
-
-    function resetLocalOnly(){
-      if (!confirm("この端末の保存だけ消します。いいですか？")) return;
-      try{ localStorage.removeItem(LS_KEY); }catch{}
-      toastShow("消した");
-    }
-
-    // ====== イベント ======
-    tKoma.addEventListener("click", ()=>setTab("koma"));
-    tKaku.addEventListener("click", ()=>setTab("kaku"));
-    tMiru.addEventListener("click", ()=>setTab("miru"));
-    tMenu.addEventListener("click", ()=>setTab("menu"));
-
-    slider.addEventListener("input", ()=> {
-      state.cur = Number(slider.value);
-      updateTop();
-      renderFrame();
-      renderGrid();
-    });
-    slider.addEventListener("change", ()=> { select(Number(slider.value)); });
-
-    prev.addEventListener("click", ()=> select(state.cur - 1));
-    next.addEventListener("click", ()=> select(state.cur + 1));
-
-    list.addEventListener("click", openList);
-    close.addEventListener("click", closeList);
-    back.addEventListener("click", (e)=>{ if (e.target === back) closeList(); });
-
-    newRoomBtn.addEventListener("click", ()=>{
-      const r = randRoom();
-      roomInp.value = r;
-      state.roomId = r;
-      setQS(r);
-      toastShow("部屋を作った");
-      saveLocalSoon();
+      fillWhite(ctx);
+      state.dirty = true;
+      saveLocalDraft();
+      renderOnion();
     });
 
-    rejoinBtn.addEventListener("click", ()=>{
-      const r = (roomInp.value||"").trim();
-      if (!r){ toastShow("部屋IDがない"); return; }
-      joinRoom(r);
-    });
-
-    copyRoomBtn.addEventListener("click", async ()=>{
-      const u = new URL(location.href);
-      const r = (roomInp.value||"").trim();
-      if (r) u.searchParams.set("room", r);
-      await copyText(u.toString());
-      toastShow("コピーした");
-    });
-
-    pen.addEventListener("click", ()=>{ state.tool="pen"; updateTool(); saveLocalSoon(); });
-    erase.addEventListener("click", ()=>{ state.tool="erase"; updateTool(); saveLocalSoon(); });
-
-    undo.addEventListener("click", ()=>{ doUndo(); });
-    clearBtn.addEventListener("click", ()=>{
-      pushUndo();
-      dctx.clearRect(0,0,RES,RES);
-      commit("全消し");
-    });
-
-    onionBtn.addEventListener("click", ()=>{
+    $('onionBtn').addEventListener('click', () => {
       state.onion = !state.onion;
-      updateTool();
+      $('onionBtn').textContent = state.onion ? '前: ON' : '前: OFF';
       renderOnion();
-      saveLocalSoon();
     });
 
-    color.addEventListener("input", ()=>{ state.color = String(color.value); saveLocalSoon(); });
-    size.addEventListener("input", ()=>{
-      state.size = clamp(Number(size.value), 1, 40);
-      w.textContent = String(state.size);
-      saveLocalSoon();
+    $('sendBtn').addEventListener('click', async () => {
+      await sendCurrentFrame();
     });
 
-    playBtn.addEventListener("click", startPlay);
-    stopBtn.addEventListener("click", pausePlay);
-    loopBtn.addEventListener("click", ()=>{ state.loop=!state.loop; updateTool(); saveLocalSoon(); });
+    // コマ操作（privateのみ）
+    const slider = $('slider');
+    const prev = $('prev');
+    const next = $('next');
 
-    saveWs.addEventListener("click", ()=>{
-      const v = (wsBase.value||"").trim();
-      if (!v){ toastShow("空"); return; }
-      localStorage.setItem(LS_WS, v);
-      toastShow("保存した");
+    slider.addEventListener('input', () => {
+      if (!state.room) return;
+      if (state.room.canEdit === 'assigned') return;
+      // 変更前に下書きを保存
+      if (state.dirty) saveLocalDraft();
+      state.currentFrame = Number(slider.value);
+      drawFrameToMain(state.currentFrame);
     });
 
-    connectBtn.addEventListener("click", ()=>{
-      wsWanted = true;
-      connect();
+    function stepFrame(d){
+      if (!state.room) return;
+      if (state.room.canEdit === 'assigned') return;
+      if (state.dirty) saveLocalDraft();
+      const n = Math.max(0, Math.min(FRAME_COUNT-1, state.currentFrame + d));
+      state.currentFrame = n;
+      slider.value = String(n);
+      drawFrameToMain(n);
+    }
+    prev.addEventListener('click', () => stepFrame(-1));
+    next.addEventListener('click', () => stepFrame( 1));
+
+    // ====== 再生 ======
+    const pf = $('pf');
+    const pt = $('pt');
+    const bar = $('bar');
+
+    function renderPlayUI(){
+      pf.textContent = `コマ ${state.playFrame+1}`;
+      bar.style.width = ((state.playFrame)/(FRAME_COUNT-1)*100).toFixed(1) + '%';
+      pt.textContent = state.playT.toFixed(2);
+    }
+
+    function drawPlayFrame(i){
+      fillWhite(pctx);
+      const img = getBestImage(i);
+      if (img) pctx.drawImage(img,0,0,W,H);
+    }
+
+    let playTimer = null;
+    function startPlayback(){
+      if (!state.room) return;
+      state.playing = true;
+      stage.classList.add('preview');
+      // 再生は現在位置から
+      state.playFrame = state.currentFrame;
+      state.playT = state.playFrame / FPS;
+      drawPlayFrame(state.playFrame);
+      renderPlayUI();
+      clearInterval(playTimer);
+      playTimer = setInterval(() => {
+        if (!state.playing) return;
+        state.playFrame++;
+        if (state.playFrame >= FRAME_COUNT){
+          if (state.loop){
+            state.playFrame = 0;
+          } else {
+            stopPlayback();
+            return;
+          }
+        }
+        state.playT = state.playFrame / FPS;
+        drawPlayFrame(state.playFrame);
+        renderPlayUI();
+      }, Math.round(1000/FPS));
+    }
+
+    function stopPlayback(){
+      state.playing = false;
+      clearInterval(playTimer);
+      playTimer = null;
+      // 止めたコマで止まる
+      state.currentFrame = state.playFrame;
+      slider.value = String(state.currentFrame);
+      stage.classList.remove('preview');
+      drawFrameToMain(state.currentFrame);
+      renderPlayUI();
+    }
+
+    $('playBtn').addEventListener('click', () => { showTab('miru'); startPlayback(); });
+    $('stopBtn').addEventListener('click', () => stopPlayback());
+    $('loopBtn').addEventListener('click', () => {
+      state.loop = !state.loop;
+      $('loopBtn').textContent = state.loop ? 'くり返し: ON' : 'くり返し: OFF';
     });
 
-    resyncBtn.addEventListener("click", ()=>{
-      if (!state.roomId){ toastShow("部屋がない"); return; }
-      send({ v:1, t:"resync", roomId: state.roomId });
-    });
+    // GIF保存
+    $('saveGifBtn').addEventListener('click', async () => {
+      if (!window.GIF){ say('GIFライブラリ読込中'); return; }
+      try{
+        say('GIF作成中…', 2000);
+        const tmp = document.createElement('canvas');
+        tmp.width = W; tmp.height = H;
+        const tctx = tmp.getContext('2d', {alpha:false});
+        const gif = new GIF({
+          workers: 2,
+          quality: 10,
+          width: W,
+          height: H,
+          workerScript: undefined,
+        });
 
-    changeThemeBtn.addEventListener("click", ()=>{
-      if (!state.roomId){ toastShow("部屋がない"); return; }
-      send({ v:1, t:"change_theme", roomId: state.roomId });
-    });
+        for (let i=0;i<FRAME_COUNT;i++){
+          fillWhite(tctx);
+          const img = getBestImage(i);
+          if (img) tctx.drawImage(img,0,0,W,H);
+          gif.addFrame(tctx, {copy:true, delay: Math.round(1000/FPS)});
+        }
 
-    saveGifBtn.addEventListener("click", saveAsGif);
-    resetBtn.addEventListener("click", resetLocalOnly);
-
-    draw.addEventListener("pointerdown", (e)=>{
-      if (previewMode !== "none") return;
-      draw.setPointerCapture?.(e.pointerId);
-      begin(pointerPos(e));
-      e.preventDefault();
-    });
-    draw.addEventListener("pointermove", (e)=>{
-      if (!isDown || previewMode !== "none") return;
-      move(pointerPos(e));
-      e.preventDefault();
-    });
-    const endAll = ()=> end();
-    draw.addEventListener("pointerup", endAll);
-    draw.addEventListener("pointercancel", endAll);
-    draw.addEventListener("pointerleave", endAll);
-
-    // ====== 起動 ======
-    (function init(){
-      setup();
-
-      const qs = parseQS();
-      const loaded = loadLocal();
-
-      if (qs.server){
-        localStorage.setItem(LS_WS, qs.server);
+        gif.on('finished', (blob) => {
+          const a = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          a.href = url;
+          const rid = state.room?.roomId || 'anim';
+          a.download = `5s_anim_${rid}.gif`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          say('保存した');
+        });
+        gif.render();
+      }catch(e){
+        log('gif_fail', String(e));
+        say('GIF失敗');
       }
-      wsBase.value = localStorage.getItem(LS_WS) || "";
+    });
 
-      const room = (qs.room || state.roomId || "").trim();
-      if (room){
-        state.roomId = room;
-        roomInp.value = room;
-        setQS(room);
-      }else{
-        const r = randRoom();
-        state.roomId = r;
-        roomInp.value = r;
-        setQS(r);
+    // ====== タブ ======
+    tKaku.addEventListener('click', () => showTab('kaku'));
+    tMiru.addEventListener('click', () => showTab('miru'));
+    tMenu.addEventListener('click', () => showTab('menu'));
+    tLobby.addEventListener('click', () => goLobby());
+    $('btnLobby').addEventListener('click', () => goLobby());
+
+    // ====== ロビーUI ======
+    $('wsBase').value = state.wsBase;
+    $('saveWs').addEventListener('click', () => {
+      state.wsBase = $('wsBase').value.trim();
+      localStorage.setItem('anim5s_wsBase', state.wsBase);
+      say('保存');
+    });
+
+    // 入口
+    $('goCreate').addEventListener('click', () => {
+      showTab('create');
+    });
+    $('goRandom').addEventListener('click', async () => {
+      await joinRandom();
+    });
+    $('goPrivate').addEventListener('click', () => {
+      showTab('priv');
+    });
+    $('goGallery').addEventListener('click', () => {
+      renderGallery();
+      showTab('gallery');
+    });
+
+    // 作成
+    let createVisibility = 'public';
+    function syncVisUI(){
+      $('visPublic').className = 'btn ' + (createVisibility==='public' ? 'ok':'sub');
+      $('visPrivate').className = 'btn ' + (createVisibility==='private' ? 'ok':'sub');
+      $('passBox').hidden = (createVisibility!=='private');
+    }
+    $('visPublic').addEventListener('click', ()=>{ createVisibility='public'; syncVisUI(); });
+    $('visPrivate').addEventListener('click', ()=>{ createVisibility='private'; syncVisUI(); });
+    syncVisUI();
+
+    $('createRoom').addEventListener('click', async () => {
+      const theme = $('themeInput').value.trim() || STD_THEMES[Math.floor(Math.random()*STD_THEMES.length)];
+      const pass = createVisibility==='private' ? $('passInput').value : '';
+      if (createVisibility==='private' && !pass){ say('合言葉'); return; }
+      await createNewRoom(theme, createVisibility, pass);
+    });
+
+    // プライベート入室
+    $('joinPrivate').addEventListener('click', async () => {
+      const roomId = $('joinRoomId').value.trim().toUpperCase();
+      const pass = $('joinPass').value;
+      if (!roomId){ say('部屋ID'); return; }
+      if (!pass){ say('合言葉'); return; }
+      await joinPrivate(roomId, pass);
+    });
+
+    // メニュー
+    $('copyRoom').addEventListener('click', async () => {
+      const rid = state.room?.roomId;
+      if (!rid){ say('部屋なし'); return; }
+      try{
+        await navigator.clipboard.writeText(rid);
+        say('コピー');
+      }catch{
+        // フォールバック
+        const t = document.createElement('textarea');
+        t.value = rid;
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        t.remove();
+        say('コピー');
+      }
+    });
+
+    $('leaveRoom').addEventListener('click', () => {
+      goLobby();
+    });
+
+    // ====== WebSocket ======
+    let ws = null;
+    let wsOpen = false;
+    let pendingBinary = null;
+    let joinInFlight = false;
+
+    function setNet(ok, msg){
+      wsOpen = ok;
+      netDot.classList.toggle('on', ok);
+      netDot.classList.toggle('bad', !ok);
+      netText.textContent = ok ? '通信: ON' : '通信: OFF';
+      if (msg) log('net', msg);
+    }
+
+    function wsUrlFromBase(base){
+      const b = base.replace(/\/$/, '');
+      if (!b) return '';
+      // https://x -> wss://x/ws
+      if (b.startsWith('https://')) return 'wss://' + b.slice(8) + '/ws';
+      if (b.startsWith('http://')) return 'ws://' + b.slice(7) + '/ws';
+      // それ以外は https扱い
+      return 'wss://' + b.replace(/^wss?:\/\//,'') + '/ws';
+    }
+
+    function connect(){
+      const base = (state.wsBase || '').trim();
+      if (!base){ say('サーバーURL'); return; }
+      const url = wsUrlFromBase(base);
+      try{
+        ws?.close();
+      }catch{}
+      ws = new WebSocket(url);
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        setNet(true, 'open');
+        send({t:'hello'});
+        say('つないだ');
+      };
+      ws.onclose = () => {
+        setNet(false, 'close');
+      };
+      ws.onerror = () => {
+        setNet(false, 'error');
+      };
+      ws.onmessage = async (ev) => {
+        if (typeof ev.data === 'string'){
+          let msg = null;
+          try{ msg = JSON.parse(ev.data); }
+          catch{ return; }
+          await onMsg(msg);
+        } else {
+          // binary
+          await onBinary(ev.data);
+        }
+      };
+    }
+
+    $('connectBtn').addEventListener('click', () => connect());
+
+    $('resyncBtn').addEventListener('click', async () => {
+      if (!state.room){ say('部屋なし'); return; }
+      send({t:'resync', roomId: state.room.roomId});
+      say('同期');
+    });
+
+    function send(obj){
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return false; }
+      ws.send(JSON.stringify(obj));
+      return true;
+    }
+
+    async function onMsg(m){
+      if (!m || !m.t) return;
+      if (m.t === 'pong') return;
+      if (m.t === 'ping'){ send({t:'pong', ts:m.ts}); return; }
+      if (m.t === 'error'){
+        say(m.message || 'エラー');
+        log('server_error', m);
+        joinInFlight = false;
+        return;
+      }
+      if (m.t === 'room_joined'){
+        joinInFlight = false;
+        applyRoomJoined(m);
+        return;
+      }
+      if (m.t === 'room_state'){
+        applyRoomState(m);
+        return;
+      }
+      if (m.t === 'frame_update_begin'){
+        pendingBinary = { roomId: m.roomId, frameIndex: m.frameIndex, mime: m.mime || 'image/png' };
+        return;
+      }
+      if (m.t === 'frame_submit_ok'){
+        // 送れた
+        say('送った');
+        // ランダム/作成はロビーへ
+        if (state.room && (state.room.flow==='create' || state.room.flow==='random')){
+          setTimeout(() => goLobby(), 450);
+        }
+        return;
+      }
+    }
+
+    async function onBinary(buf){
+      if (!pendingBinary) return;
+      const {roomId, frameIndex, mime} = pendingBinary;
+      pendingBinary = null;
+      if (!state.room || state.room.roomId !== roomId) {
+        // いま見てない部屋の更新は無視（ギャラリーは都度join_viewする）
+        return;
+      }
+      try{
+        const blob = new Blob([buf], {type:mime});
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.decoding='async';
+        img.src = url;
+        await img.decode().catch(()=>{});
+
+        const f = state.frames[frameIndex];
+        if (f.url) URL.revokeObjectURL(f.url);
+        f.url = url;
+        f.img = img;
+        f.filled = true;
+        log('frame_update', {frame: frameIndex});
+
+        // 表示更新
+        if (state.tab !== 'miru'){
+          if (state.room.canEdit==='assigned'){
+            if (frameIndex === state.currentFrame) drawFrameToMain(frameIndex);
+          } else {
+            // private/view
+            if (frameIndex === state.currentFrame) drawFrameToMain(frameIndex);
+          }
+        } else {
+          // 再生中は次の描画時に反映
+        }
+        renderOnion();
+      }catch(e){
+        log('binary_fail', String(e));
+      }
+    }
+
+    function applyRoomJoined(m){
+      resetFramesLocal();
+      const r = {
+        roomId: m.roomId,
+        visibility: m.visibility,
+        theme: m.theme,
+        canEdit: m.canEdit, // 'assigned'|'any'|'view'
+        assignedFrame: (typeof m.assignedFrame === 'number') ? m.assignedFrame : null,
+        reservationToken: m.reservationToken || null,
+        reservationExpiresAt: m.reservationExpiresAt || null,
+        flow: m.flow || 'unknown',
+        pass: m.pass || null,
+      };
+      state.room = r;
+      themeLine.textContent = `お題：${r.theme}`;
+      chipRoom.style.display = 'inline-flex';
+      chipRoom.textContent = `ID ${r.roomId}`;
+
+      // 下書きロード
+      loadLocalDraftsForRoom(r.roomId);
+
+      // 編集できるコマ
+      if (r.canEdit === 'assigned'){
+        state.currentFrame = r.assignedFrame ?? 0;
+        $('frameBox').style.display = 'none';
+        slider.disabled = true;
+        prev.disabled = true;
+        next.disabled = true;
+      } else {
+        $('frameBox').style.display = '';
+        slider.disabled = false;
+        prev.disabled = false;
+        next.disabled = false;
+        state.currentFrame = 0;
       }
 
-      if (state.theme){
-        applyTheme(state.theme);
-      }else{
-        applyTheme({ title:"-", note:"-" });
+      // 描けない場合
+      $('sendBtn').disabled = (r.canEdit === 'view');
+      $('pen').disabled = (r.canEdit === 'view');
+      $('erase').disabled = (r.canEdit === 'view');
+      $('undo').disabled = (r.canEdit === 'view');
+      $('clear').disabled = (r.canEdit === 'view');
+      $('onionBtn').disabled = false;
+
+      // ルーム履歴
+      touchMyRoom({roomId:r.roomId, theme:r.theme, visibility:r.visibility, pass: r.pass});
+
+      // サーバーから部屋情報が続いて届く（room_state + frame blobs）
+      slider.value = String(state.currentFrame);
+      renderKomaLabels();
+      drawFrameToMain(state.currentFrame);
+
+      // デフォルトは「描く」タブ（viewは見る）
+      if (r.canEdit === 'view'){
+        showTab('miru');
+        drawPlayFrame(state.currentFrame);
+      } else {
+        showTab('kaku');
       }
 
-      updateTool();
-      renderGrid();
-      updateTop();
-      renderFrame();
-      setTab("koma");
+      say('入った');
+    }
 
-      setNet(false);
-
-      if (loaded) toastShow("前のつづき");
-
-      if ((localStorage.getItem(LS_WS)||"").trim()){
-        wsWanted = true;
-        connect();
+    function applyRoomState(m){
+      if (!state.room || state.room.roomId !== m.roomId) return;
+      if (m.theme && state.room.theme !== m.theme){
+        state.room.theme = m.theme;
+        themeLine.textContent = `お題：${state.room.theme}`;
       }
-    })();
-  </script>
-</body>
+      if (Array.isArray(m.filled)){
+        for (let i=0;i<FRAME_COUNT;i++){
+          state.frames[i].filled = !!m.filled[i];
+        }
+      }
+      // 予約更新
+      if (m.reservationExpiresAt) state.room.reservationExpiresAt = m.reservationExpiresAt;
+      renderKomaLabels();
+    }
+
+    // ====== 送信（自動＋手動） ======
+    async function autoSendMaybe(){
+      if (!state.room) return;
+      if (state.room.canEdit === 'view') return;
+      if (!state.dirty) return;
+      const now = Date.now();
+      if (now - state.lastAutoSend < 380) return; // 連打防止
+      await sendCurrentFrame(true);
+    }
+
+    async function sendCurrentFrame(isAuto=false){
+      if (!state.room) return;
+      if (state.room.canEdit === 'view') return;
+      if (state.room.canEdit === 'assigned' && state.currentFrame !== state.room.assignedFrame) return;
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return; }
+
+      // まず下書きを保存
+      if (state.dirty) saveLocalDraft();
+
+      // Blobで送る（軽い）
+      const frameIndex = state.currentFrame;
+      const roomId = state.room.roomId;
+      const token = state.room.reservationToken;
+
+      const blob = await new Promise((resolve) => cDraw.toBlob(resolve, 'image/png'));
+      if (!blob){ say('送れない'); return; }
+
+      const begin = {
+        t:'submit_begin',
+        roomId,
+        frameIndex,
+        mime:'image/png',
+        reservationToken: token || undefined,
+      };
+      send(begin);
+      ws.send(blob);
+
+      state.lastAutoSend = Date.now();
+      state.dirty = false;
+      log('submit', {roomId, frameIndex, auto:isAuto});
+      if (!isAuto) say('送信中…', 900);
+    }
+
+    // ====== ルーム操作 ======
+    async function createNewRoom(theme, visibility, pass){
+      if (!ws || ws.readyState !== 1){ connect(); await waitWs(); }
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return; }
+
+      const msg = {
+        t:'create_room',
+        visibility,
+        theme,
+        passphrase: visibility==='private' ? pass : undefined,
+      };
+      joinInFlight = true;
+      send(msg);
+    }
+
+    async function joinRandom(){
+      if (!ws || ws.readyState !== 1){ connect(); await waitWs(); }
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return; }
+      if (joinInFlight) return;
+      joinInFlight = true;
+      send({t:'join_random'});
+    }
+
+    async function joinPrivate(roomId, pass){
+      if (!ws || ws.readyState !== 1){ connect(); await waitWs(); }
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return; }
+      if (joinInFlight) return;
+      joinInFlight = true;
+      send({t:'join_private', roomId, passphrase: pass});
+    }
+
+    async function joinView(roomId, visibility, pass){
+      if (!ws || ws.readyState !== 1){ connect(); await waitWs(); }
+      if (!ws || ws.readyState !== 1){ say('通信OFF'); return; }
+      if (joinInFlight) return;
+      joinInFlight = true;
+      const msg = { t:'join_view', roomId };
+      if (visibility==='private') msg.passphrase = pass || '';
+      send(msg);
+    }
+
+    function waitWs(){
+      return new Promise((resolve) => {
+        let n = 0;
+        const t = setInterval(() => {
+          n++;
+          if (ws && ws.readyState === 1){ clearInterval(t); resolve(true); }
+          if (n > 25){ clearInterval(t); resolve(false); }
+        }, 120);
+      });
+    }
+
+    // ====== 初期化 ======
+    fillWhite(ctx); fillWhite(octx); fillWhite(pctx);
+    setTool('pen');
+    showTab('lobby');
+    setNet(false);
+
+    // タブバーはロビー時も使う
+    function setTabBarMode(mode){
+      // ルーム中は「描く/見る/メニュー/ロビー」、ロビー中はロビー固定
+      if (mode === 'lobby'){
+        tKaku.disabled = true;
+        tMiru.disabled = true;
+        tMenu.disabled = true;
+        tLobby.disabled = false;
+      } else {
+        tKaku.disabled = false;
+        tMiru.disabled = false;
+        tMenu.disabled = false;
+        tLobby.disabled = false;
+      }
+    }
+
+    // ルームがあるかで切替
+    const _origShowTab = showTab;
+    showTab = function(name){
+      _origShowTab(name);
+      setTabBarMode(state.room ? 'room' : 'lobby');
+      renderKomaLabels();
+    };
+
+    // ロビーに戻るボタン
+    $('btnLobby').addEventListener('click', () => goLobby());
+
+    // ルームがない間はキャンバスにタイトル
+    badge.textContent = 'ロビー';
+
+    // 定期：予約残り表示更新
+    setInterval(() => {
+      if (!state.room) return;
+      renderKomaLabels();
+    }, 250);
+
+  })();
+  </script></body>
 </html>
