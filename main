@@ -1,0 +1,1274 @@
+<!doctype html>
+
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#6a7cff" />
+  <title>5秒アニメ</title>
+  <style>
+    :root{
+      color-scheme: light;
+      --bg:#f6f7ff;
+      --ink:#141428;
+      --line:rgba(20,20,40,.10);
+      --shadow: 0 14px 34px rgba(26,26,60,.14);
+      --a:#6a7cff;
+      --p:#ff5cc8;
+      --m:#35d6c4;
+      --y:#ffd34a;
+      --r:#ff486a;
+      --R:18px;
+      --onionOpacity:.20;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 700px at 10% 10%, rgba(106,124,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(255,92,200,.14), transparent 55%),
+        radial-gradient(900px 700px at 30% 95%, rgba(53,214,196,.12), transparent 55%),
+        var(--bg);
+      color:var(--ink);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow:hidden;
+    }
+    .app{
+      height: 100vh;
+      height: 100dvh;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--line);
+      border-radius: var(--R);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+      min-height: 60px;
+    }
+    .left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .title{ font-weight: 1000; letter-spacing:.06em; font-size: 14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .themeLine{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .right{ display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 22px rgba(26,26,60,.10);
+      font-weight: 1000;
+      font-size: 13px;
+      white-space:nowrap;
+    }main{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
+
+.stage{
+  flex:0 0 auto;
+  height:54vh;
+  height:54dvh;
+  min-height:320px;
+  max-height:580px;
+  border-radius: var(--R);
+  border: 1px solid rgba(20,20,40,.12);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  position:relative;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  aspect-ratio: 1 / 1;
+  background-image:
+    linear-gradient(rgba(20,20,40,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,20,40,.045) 1px, transparent 1px);
+  background-size:16px 16px;
+  background-position:center;
+}
+.stage canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  image-rendering: pixelated;
+  display:block;
+}
+/* オニオンは必ず上 */
+#draw{ z-index:2; touch-action:none; }
+#onion{ z-index:3; pointer-events:none; opacity: var(--onionOpacity); }
+#play{ z-index:4; display:none; pointer-events:none; }
+.stage.preview #play{ display:block; }
+.stage.preview #draw{ pointer-events:none; }
+.stage.preview #onion{ opacity: 0; }
+
+.badge{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:10;
+  padding:10px 12px;
+  border-radius:999px;
+  border:1px solid rgba(20,20,40,.12);
+  background: rgba(255,255,255,.90);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 12px 26px rgba(26,26,60,.18);
+  font-weight: 1000;
+  letter-spacing:.06em;
+  font-size: 16px;
+}
+
+.panel{
+  flex:1;
+  min-height:0;
+  background: rgba(255,255,255,.88);
+  border: 1px solid var(--line);
+  border-radius: var(--R);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  backdrop-filter: blur(6px);
+}
+.tab{ flex:1; min-height:0; overflow:auto; padding:10px; display:none; }
+.tab.on{ display:block; }
+
+.bar{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:8px;
+  padding:10px;
+  border-top: 1px solid rgba(20,20,40,.08);
+  background: rgba(255,255,255,.74);
+}
+.tbtn{
+  padding:10px 8px;
+  border-radius:14px;
+  border: 1px solid rgba(20,20,40,.10);
+  background: rgba(255,255,255,.98);
+  color: rgba(20,20,40,.72);
+  font-weight: 1000;
+  font-size: 13px;
+  letter-spacing:.04em;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+  box-shadow: 0 10px 22px rgba(26,26,60,.10);
+}
+.tbtn.on{
+  background: linear-gradient(135deg, rgba(106,124,255,.22), rgba(255,92,200,.14));
+  border-color: rgba(106,124,255,.28);
+  color: rgba(20,20,40,.95);
+}
+
+.box{
+  background: rgba(255,255,255,.97);
+  border: 1px solid rgba(20,20,40,.10);
+  border-radius: 16px;
+  padding:10px;
+  box-shadow: 0 12px 26px rgba(26,26,60,.10);
+}
+.row{ display:flex; gap:10px; align-items:center; }
+.row > *{ flex:1; min-width:0; }
+.btn{
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(20,20,40,.12);
+  background:#fff;
+  color: rgba(20,20,40,.95);
+  font-size: 15px;
+  font-weight: 1000;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+  box-shadow: 0 12px 26px rgba(26,26,60,.12);
+}
+.btn.ok{ background: linear-gradient(135deg, rgba(53,214,196,.28), rgba(106,124,255,.18)); border-color: rgba(53,214,196,.30); }
+.btn.sub{ background: rgba(255,255,255,.98); }
+.btn.bad{ background: linear-gradient(135deg, rgba(255,72,106,.22), rgba(255,211,74,.18)); border-color: rgba(255,72,106,.28); }
+.btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+.mini{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.75); margin: 0 0 8px 2px; letter-spacing:.02em; }
+
+input[type="range"]{ width:100%; }
+input[type="color"]{
+  width:100%;
+  height:48px;
+  border-radius:16px;
+  border: 1px solid rgba(20,20,40,.12);
+  background:#fff;
+  padding:6px;
+  box-shadow: 0 12px 26px rgba(26,26,60,.10);
+}
+
+.grid2{ display:grid; grid-template-columns: .9fr 1.1fr; gap:10px; align-items:center; }
+
+.back{
+  position:fixed;
+  inset:0;
+  background: rgba(20,20,40,.35);
+  backdrop-filter: blur(3px);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  padding:12px;
+  z-index:50;
+}
+.back.on{ display:flex; }
+.sheet{
+  width: min(980px, 100%);
+  max-height: 80vh;
+  max-height: 80dvh;
+  background: rgba(255,255,255,.97);
+  border: 1px solid rgba(20,20,40,.12);
+  border-radius: 22px;
+  box-shadow: 0 30px 80px rgba(26,26,60,.22);
+  overflow:hidden;
+}
+.sheetTop{
+  padding: 12px 12px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-bottom: 1px solid rgba(20,20,40,.10);
+  font-weight: 1000;
+  letter-spacing:.06em;
+}
+.sheetGrid{
+  padding:12px;
+  display:grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap:8px;
+}
+.f{
+  height:34px;
+  border-radius:12px;
+  border: 1px solid rgba(20,20,40,.12);
+  background: rgba(255,255,255,.98);
+  font-weight: 1000;
+  cursor:pointer;
+  box-shadow: 0 10px 22px rgba(26,26,60,.10);
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+}
+.f.on{ outline:2px solid rgba(106,124,255,.90); outline-offset:1px; }
+.f.empty{ opacity:.65; }
+
+.toast{
+  position:fixed;
+  left:12px;
+  right:12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index:90;
+  display:none;
+  justify-content:center;
+  pointer-events:none;
+}
+.toast.on{ display:flex; }
+.toast .t{
+  max-width: 980px;
+  width: 100%;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(20,20,40,.12);
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: 0 20px 60px rgba(26,26,60,.24);
+  font-weight: 1000;
+  color: rgba(20,20,40,.90);
+  text-align:center;
+}
+
+@media (max-height: 720px){
+  .stage{ min-height: 280px; height: 52vh; height: 52dvh; }
+  header{ min-height: 56px; }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="left">
+        <div class="title">5秒アニメ</div>
+        <div class="themeLine" id="themeLine">お題：-</div>
+      </div>
+      <div class="right">
+        <div class="chip" id="chipKoma">コマ 1 / 60</div>
+        <div class="chip" id="chipAuto">保存: ON</div>
+      </div>
+    </header><main>
+  <div class="stage" id="stage">
+    <canvas id="draw"></canvas>
+    <canvas id="onion" aria-hidden="true"></canvas>
+    <canvas id="play" aria-hidden="true"></canvas>
+    <div class="badge" id="badge">コマ 1 / 60</div>
+  </div>
+
+  <section class="panel">
+    <div class="tab on" id="tabKoma">
+      <div class="box">
+        <div class="mini">コマ</div>
+        <input id="slider" type="range" min="0" max="59" value="0" />
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="prev" class="btn sub">◀ 前</button>
+        <button id="next" class="btn sub">次 ▶</button>
+        <button id="list" class="btn sub">一覧</button>
+      </div>
+    </div>
+
+    <div class="tab" id="tabKaku">
+      <div class="box">
+        <div class="mini">道具</div>
+        <div class="row">
+          <button id="pen" class="btn ok">ペン</button>
+          <button id="erase" class="btn sub">消す</button>
+          <button id="undo" class="btn sub">戻す</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="clear" class="btn bad">全消し</button>
+          <button id="onionBtn" class="btn sub">前: ON</button>
+        </div>
+      </div>
+
+      <div class="box" style="margin-top:10px;">
+        <div class="mini">色 / 太さ</div>
+        <div class="grid2">
+          <input id="color" type="color" value="#141428" aria-label="色" />
+          <div class="box" style="padding:10px;">
+            <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
+            <input id="size" type="range" min="1" max="40" value="6" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tabMiru">
+      <div class="box">
+        <div class="mini">見る</div>
+        <div class="row">
+          <button id="playBtn" class="btn ok">▶ 見る</button>
+          <button id="stopBtn" class="btn sub">■ 止める</button>
+          <button id="loopBtn" class="btn sub">くり返し: OFF</button>
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">いま</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-weight:1000; min-width:60px;" id="pf">-</div>
+            <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(106,124,255,.12); overflow:hidden;">
+              <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(106,124,255,.85), rgba(255,92,200,.75));"></div>
+            </div>
+            <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tabMenu">
+      <div class="box">
+        <div class="mini">お題</div>
+        <div style="font-weight:1000; font-size:16px;" id="odai">-</div>
+        <div style="margin-top:6px; font-weight:900; color: rgba(20,20,40,.70);" id="odai2">-</div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="odaiBtn" class="btn sub">お題を変える</button>
+          <button id="saveGifBtn" class="btn ok">GIFで保存</button>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="resetBtn" class="btn bad">全部リセット</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bar">
+      <button class="tbtn on" id="tKoma">コマ</button>
+      <button class="tbtn" id="tKaku">描く</button>
+      <button class="tbtn" id="tMiru">見る</button>
+      <button class="tbtn" id="tMenu">メニュー</button>
+    </div>
+  </section>
+</main>
+
+  </div>  <div class="back" id="back" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheetTop">
+        <div>コマ一覧</div>
+        <button id="close" class="btn sub" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">閉じる</button>
+      </div>
+      <div class="sheetGrid" id="grid"></div>
+    </div>
+  </div>  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>  <script>
+    const RES = 256;
+    const FPS = 12;
+    const COUNT = 60;
+
+    const $ = (id) => document.getElementById(id);
+
+    const stage = $("stage");
+    const onion = $("onion");
+    const draw  = $("draw");
+    const play  = $("play");
+
+    const badge = $("badge");
+    const chipKoma = $("chipKoma");
+    const themeLine = $("themeLine");
+
+    const slider = $("slider");
+    const prev = $("prev");
+    const next = $("next");
+    const list = $("list");
+
+    const pen = $("pen");
+    const erase = $("erase");
+    const undo = $("undo");
+    const clearBtn = $("clear");
+    const onionBtn = $("onionBtn");
+    const color = $("color");
+    const size = $("size");
+    const w = $("w");
+
+    const playBtn = $("playBtn");
+    const stopBtn = $("stopBtn");
+    const loopBtn = $("loopBtn");
+    const pf = $("pf");
+    const pt = $("pt");
+    const bar = $("bar");
+
+    const odai = $("odai");
+    const odai2 = $("odai2");
+    const odaiBtn = $("odaiBtn");
+    const saveGifBtn = $("saveGifBtn");
+    const resetBtn = $("resetBtn");
+
+    const back = $("back");
+    const close = $("close");
+    const grid = $("grid");
+
+    const tKoma = $("tKoma");
+    const tKaku = $("tKaku");
+    const tMiru = $("tMiru");
+    const tMenu = $("tMenu");
+    const tabKoma = $("tabKoma");
+    const tabKaku = $("tabKaku");
+    const tabMiru = $("tabMiru");
+    const tabMenu = $("tabMenu");
+
+    const toast = $("toast");
+    const toastText = $("toastText");
+
+    let octx, dctx, pctx;
+
+    const LS_KEY = "anim5s_offline_v3";
+
+    let state = {
+      odai: null,
+      cur: 0,
+      tool: "pen",
+      color: "#141428",
+      size: 6,
+      loop: false,
+      onion: true,
+      frames: Array.from({length: COUNT}, () => ({img:null})),
+      logs: [] // 見えない
+    };
+
+    let isDown = false;
+    let last = null;
+    let undoStack = [];
+    const UNDO_MAX = 18;
+
+    let previewMode = "none"; // none / playing / paused
+    let playStart = 0;
+    let playPosSec = 0;
+    let raf = 0;
+    let imgs = [];
+
+    const clamp = (n,a,b)=>Math.max(a, Math.min(b,n));
+
+    function toastShow(s){
+      toastText.textContent = s;
+      toast.classList.add("on");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(()=>toast.classList.remove("on"), 1600);
+    }
+
+    function log(s){
+      state.logs.unshift(`${new Date().toLocaleTimeString()} ${s}`);
+      if (state.logs.length > 200) state.logs.length = 200;
+    }
+
+    function setup(){
+      onion.width = RES; onion.height = RES;
+      draw.width  = RES; draw.height  = RES;
+      play.width  = RES; play.height  = RES;
+
+      octx = onion.getContext("2d");
+      dctx = draw.getContext("2d", { willReadFrequently:true });
+      pctx = play.getContext("2d");
+
+      octx.imageSmoothingEnabled = false;
+      dctx.imageSmoothingEnabled = true;
+      pctx.imageSmoothingEnabled = false;
+
+      clearToTransparent(dctx);
+      clearToTransparent(pctx);
+      octx.clearRect(0,0,RES,RES);
+    }
+
+    function clearToTransparent(ctx){
+      ctx.clearRect(0,0,RES,RES);
+    }
+
+    function makeOdai(seed){
+      const titles = [
+        "歩く犬","通勤時間","駅のホーム","雨の日の傘","信号待ち","朝の歯みがき",
+        "走る猫","お弁当作り","自転車で帰る","宿題の時間","エレベーター","コンビニ入店"
+      ];
+      const notes = ["動きがわかるように","シンプルでOK","表情を大きめに","3つくらい動かす","最初と最後を変える","オチがあると強い"];
+      return { seed, title: titles[seed % titles.length], note: notes[(seed * 7) % notes.length] };
+    }
+
+    function ensureOdai(){
+      if (!state.odai) state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
+      odai.textContent = state.odai.title;
+      odai2.textContent = state.odai.note;
+      themeLine.textContent = `お題：${state.odai.title}`;
+    }
+
+    function setTab(name){
+      const map = {koma:tabKoma, kaku:tabKaku, miru:tabMiru, menu:tabMenu};
+      const btns = {koma:tKoma, kaku:tKaku, miru:tMiru, menu:tMenu};
+      Object.keys(map).forEach(k=>{
+        map[k].classList.toggle("on", k===name);
+        btns[k].classList.toggle("on", k===name);
+      });
+      if (name !== "miru") exitPreview();
+    }
+
+    function updateTop(){
+      const t = `コマ ${state.cur+1} / ${COUNT}`;
+      badge.textContent = t;
+      chipKoma.textContent = t;
+      slider.value = String(state.cur);
+
+      // 編集できるのはオフラインなので常にOK
+      clearBtn.disabled = false;
+      undo.disabled = false;
+    }
+
+    function updateTool(){
+      const isPen = state.tool === "pen";
+      pen.classList.toggle("ok", isPen);
+      pen.classList.toggle("sub", !isPen);
+      erase.classList.toggle("ok", !isPen);
+      erase.classList.toggle("sub", isPen);
+
+      w.textContent = String(state.size);
+      size.value = String(state.size);
+      color.value = state.color;
+
+      onionBtn.textContent = `前: ${state.onion ? "ON" : "OFF"}`;
+      document.documentElement.style.setProperty("--onionOpacity", state.onion ? ".20" : "0");
+
+      loopBtn.textContent = `くり返し: ${state.loop ? "ON" : "OFF"}`;
+    }
+
+    function renderOnion(){
+      octx.clearRect(0,0,RES,RES);
+      if (!state.onion) return;
+      const prevI = state.cur - 1;
+      if (prevI < 0) return;
+      const imgUrl = state.frames[prevI]?.img;
+      if (!imgUrl) return;
+
+      const im = new Image();
+      const cur = state.cur;
+      im.decoding = "async";
+      im.onload = () => {
+        if (state.cur !== cur) return;
+        octx.clearRect(0,0,RES,RES);
+        octx.drawImage(im, 0, 0, RES, RES);
+      };
+      im.src = imgUrl;
+    }
+
+    function renderFrame(){
+      clearToTransparent(dctx);
+      undoStack = [];
+
+      const imgUrl = state.frames[state.cur]?.img;
+      if (!imgUrl){
+        renderOnion();
+        return;
+      }
+
+      const im = new Image();
+      const cur = state.cur;
+      im.decoding = "async";
+      im.onload = () => {
+        if (state.cur !== cur) return;
+        clearToTransparent(dctx);
+        dctx.drawImage(im, 0, 0, RES, RES);
+        renderOnion();
+      };
+      im.src = imgUrl;
+    }
+
+    function renderGrid(){
+      if (!grid._made){
+        grid._made = true;
+        grid.innerHTML = "";
+        for (let i=0;i<COUNT;i++){
+          const b = document.createElement("button");
+          b.className = "f";
+          b.textContent = String(i+1);
+          b.addEventListener("click", ()=>{
+            closeList();
+            select(i);
+          });
+          grid.appendChild(b);
+        }
+      }
+      const buttons = grid.children;
+      for (let i=0;i<COUNT;i++){
+        const b = buttons[i];
+        b.classList.toggle("on", i === state.cur);
+        b.classList.toggle("empty", !state.frames[i]?.img);
+      }
+    }
+
+    function pushUndo(){
+      try{
+        const snap = dctx.getImageData(0,0,RES,RES);
+        undoStack.push(snap);
+        if (undoStack.length > UNDO_MAX) undoStack.shift();
+      }catch{}
+    }
+
+    function doUndo(){
+      const snap = undoStack.pop();
+      if (!snap) return;
+      dctx.putImageData(snap, 0, 0);
+      commit("戻す");
+    }
+
+    function compositeToPngDataUrl(){
+      const c = document.createElement("canvas");
+      c.width = RES; c.height = RES;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,RES,RES);
+      ctx.drawImage(draw, 0, 0);
+      return c.toDataURL("image/png");
+    }
+
+    function saveLocalSoon(){
+      clearTimeout(saveLocalSoon._t);
+      saveLocalSoon._t = setTimeout(saveLocal, 250);
+    }
+
+    function saveLocal(){
+      try{
+        const data = {
+          v: 3,
+          at: Date.now(),
+          odai: state.odai,
+          cur: state.cur,
+          tool: state.tool,
+          color: state.color,
+          size: state.size,
+          loop: state.loop,
+          onion: state.onion,
+          frames: state.frames.map(f=>f.img)
+        };
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
+      }catch{}
+    }
+
+    function loadLocal(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (!d || d.v !== 3) return false;
+        if (Array.isArray(d.frames) && d.frames.length === COUNT){
+          for (let i=0;i<COUNT;i++){
+            const img = d.frames[i];
+            state.frames[i].img = (typeof img === "string") ? img : null;
+          }
+        }
+        if (d.odai && typeof d.odai.title === "string") state.odai = d.odai;
+        if (Number.isInteger(d.cur)) state.cur = clamp(d.cur, 0, COUNT-1);
+        if (d.tool === "pen" || d.tool === "erase") state.tool = d.tool;
+        if (typeof d.color === "string") state.color = d.color;
+        if (Number.isFinite(d.size)) state.size = clamp(d.size, 1, 40);
+        state.loop = !!d.loop;
+        state.onion = !!d.onion;
+        return true;
+      }catch{ return false; }
+    }
+
+    function commit(why){
+      state.frames[state.cur].img = compositeToPngDataUrl();
+      log(`更新: コマ${state.cur+1} (${why})`);
+      renderGrid();
+      renderOnion();
+      updateTop();
+      saveLocalSoon();
+    }
+
+    function pointerPos(e){
+      const rect = draw.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width  * RES;
+      const y = (e.clientY - rect.top)  / rect.height * RES;
+      return {x, y};
+    }
+
+    function begin(pt){
+      pushUndo();
+      isDown = true;
+      last = pt;
+
+      dctx.lineCap = "round";
+      dctx.lineJoin = "round";
+      dctx.lineWidth = state.size;
+
+      if (state.tool === "erase"){
+        dctx.globalCompositeOperation = "destination-out";
+        dctx.strokeStyle = "rgba(0,0,0,1)";
+      }else{
+        dctx.globalCompositeOperation = "source-over";
+        dctx.strokeStyle = state.color;
+      }
+
+      dctx.beginPath();
+      dctx.moveTo(pt.x, pt.y);
+      dctx.lineTo(pt.x + 0.01, pt.y + 0.01);
+      dctx.stroke();
+    }
+
+    function move(pt){
+      if (!isDown || !last) return;
+      dctx.beginPath();
+      dctx.moveTo(last.x, last.y);
+      dctx.lineTo(pt.x, pt.y);
+      dctx.stroke();
+      last = pt;
+    }
+
+    function end(){
+      if (!isDown) return;
+      isDown = false;
+      last = null;
+      commit("描く");
+    }
+
+    function select(i){
+      i = clamp(i, 0, COUNT-1);
+      state.cur = i;
+      updateTop();
+      renderFrame();
+      renderGrid();
+      saveLocalSoon();
+      log(`移動: コマ${i+1}`);
+    }
+
+    function prepImgs(){
+      imgs = state.frames.map(f=>{
+        if (!f.img) return null;
+        const im = new Image();
+        im.decoding = "async";
+        im.src = f.img;
+        return im;
+      });
+    }
+
+    function paintPlay(idx){
+      pctx.clearRect(0,0,RES,RES);
+      pctx.fillStyle = "#fff";
+      pctx.fillRect(0,0,RES,RES);
+      const im = imgs[idx];
+      if (!im) return;
+      if (im.complete && im.naturalWidth > 0){
+        pctx.imageSmoothingEnabled = false;
+        pctx.drawImage(im, 0, 0, RES, RES);
+      }
+    }
+
+    function startPlay(){
+      if (previewMode === "playing") return;
+      prepImgs();
+      stage.classList.add("preview");
+
+      if (previewMode === "paused"){
+        playStart = performance.now() - playPosSec * 1000;
+      }else{
+        playPosSec = 0;
+        playStart = performance.now();
+      }
+      previewMode = "playing";
+      tick();
+    }
+
+    function pausePlay(){
+      if (previewMode !== "playing") return;
+      previewMode = "paused";
+      cancelAnimationFrame(raf);
+    }
+
+    function exitPreview(){
+      if (previewMode === "none") return;
+      previewMode = "none";
+      cancelAnimationFrame(raf);
+      stage.classList.remove("preview");
+      pf.textContent = "-";
+      pt.textContent = "0.00";
+      bar.style.width = "0%";
+    }
+
+    function tick(){
+      if (previewMode !== "playing") return;
+
+      const now = performance.now();
+      const sec = (now - playStart) / 1000;
+      playPosSec = sec;
+
+      const dur = COUNT / FPS;
+      let fi = Math.floor(sec * FPS);
+
+      if (fi >= COUNT){
+        if (state.loop){
+          playStart = now;
+          playPosSec = 0;
+          fi = 0;
+        }else{
+          // 最後のコマで止まる
+          fi = COUNT - 1;
+          paintPlay(fi);
+          pf.textContent = `コマ${fi+1}`;
+          pt.textContent = dur.toFixed(2);
+          bar.style.width = "100%";
+          previewMode = "paused";
+          return;
+        }
+      }
+
+      paintPlay(fi);
+      pf.textContent = `コマ${fi+1}`;
+      pt.textContent = sec.toFixed(2);
+      bar.style.width = `${clamp((sec/dur)*100, 0, 100)}%`;
+
+      raf = requestAnimationFrame(tick);
+    }
+
+    function openList(){
+      back.classList.add("on");
+      back.setAttribute("aria-hidden", "false");
+    }
+    function closeList(){
+      back.classList.remove("on");
+      back.setAttribute("aria-hidden", "true");
+    }
+
+    // ---- GIF（壊れにくさ優先） ----
+
+    function buildWebSafePalette256(){
+      const pal = new Uint8Array(256*3);
+      const steps = [0,51,102,153,204,255];
+      let idx = 0;
+      for (let r=0;r<6;r++){
+        for (let g=0;g<6;g++){
+          for (let b=0;b<6;b++){
+            pal[idx*3+0] = steps[r];
+            pal[idx*3+1] = steps[g];
+            pal[idx*3+2] = steps[b];
+            idx++;
+          }
+        }
+      }
+      // 残りは白で埋める（安全）
+      for (; idx<256; idx++){
+        pal[idx*3+0] = 255;
+        pal[idx*3+1] = 255;
+        pal[idx*3+2] = 255;
+      }
+      return pal;
+    }
+
+    function quantWebSafeIndex(r,g,b){
+      const r6 = Math.max(0, Math.min(5, Math.round(r/51)));
+      const g6 = Math.max(0, Math.min(5, Math.round(g/51)));
+      const b6 = Math.max(0, Math.min(5, Math.round(b/51)));
+      return (r6*36 + g6*6 + b6) & 255;
+    }
+
+    class ChunkWriter{
+      constructor(cap=1<<20){
+        this.buf = new Uint8Array(cap);
+        this.pos = 0;
+        this.chunks = [];
+      }
+      byte(v){
+        if (this.pos >= this.buf.length) this.flush();
+        this.buf[this.pos++] = v & 255;
+      }
+      word(v){ this.byte(v); this.byte(v>>8); }
+      str(s){ for (let i=0;i<s.length;i++) this.byte(s.charCodeAt(i)); }
+      bytes(u8){
+        let i=0;
+        while (i < u8.length){
+          const room = this.buf.length - this.pos;
+          if (room === 0){ this.flush(); continue; }
+          const take = Math.min(room, u8.length - i);
+          this.buf.set(u8.subarray(i, i+take), this.pos);
+          this.pos += take;
+          i += take;
+        }
+      }
+      flush(){
+        if (this.pos > 0){
+          this.chunks.push(this.buf.slice(0, this.pos));
+          this.pos = 0;
+        }
+      }
+      blob(type){
+        this.flush();
+        return new Blob(this.chunks, {type});
+      }
+    }
+
+    function writeSubBlocks(w, data){
+      let i=0;
+      while (i < data.length){
+        const n = Math.min(255, data.length - i);
+        w.byte(n);
+        w.bytes(data.subarray(i, i+n));
+        i += n;
+      }
+      w.byte(0);
+    }
+
+    function lzwEncodeWithResets(indices, minCodeSize, resetEvery){
+      const CLEAR = 1 << minCodeSize;
+      const EOI   = CLEAR + 1;
+      const MAX   = 4095;
+
+      let next = EOI + 1;
+      let codeSize = minCodeSize + 1;
+      const dict = new Map();
+
+      const out = [];
+      let cur = 0;
+      let bits = 0;
+
+      const write = (code)=>{
+        cur |= (code << bits);
+        bits += codeSize;
+        while (bits >= 8){
+          out.push(cur & 255);
+          cur >>= 8;
+          bits -= 8;
+        }
+      };
+
+      const reset = ()=>{
+        dict.clear();
+        next = EOI + 1;
+        codeSize = minCodeSize + 1;
+      };
+
+      reset();
+      write(CLEAR);
+
+      let prefix = indices[0];
+
+      for (let i=1;i<indices.length;i++){
+        if (resetEvery && (i % resetEvery) === 0){
+          // 途中で強制リセット（互換性優先）
+          write(prefix);
+          write(CLEAR);
+          reset();
+          prefix = indices[i];
+          continue;
+        }
+
+        const k = indices[i];
+        const key = (prefix << 8) | k;
+        const hit = dict.get(key);
+        if (hit !== undefined){
+          prefix = hit;
+        }else{
+          write(prefix);
+
+          if (next <= MAX){
+            dict.set(key, next++);
+            if (next === (1 << codeSize) && codeSize < 12) codeSize++;
+          }else{
+            write(CLEAR);
+            reset();
+          }
+          prefix = k;
+        }
+      }
+
+      write(prefix);
+      write(EOI);
+      if (bits > 0) out.push(cur & 255);
+      return new Uint8Array(out);
+    }
+
+    function makeDelays(){
+      // 5秒=500(1/100秒)
+      const delays = new Uint16Array(COUNT);
+      const ideal = 100 / FPS;
+      const target = 500;
+      let rem = 0;
+      let sum = 0;
+      for (let i=0;i<COUNT;i++){
+        rem += ideal;
+        let d = Math.floor(rem + 1e-6);
+        rem -= d;
+        if (d < 1) d = 1;
+        delays[i] = d;
+        sum += d;
+      }
+      const fix = target - sum;
+      delays[COUNT-1] = Math.max(1, delays[COUNT-1] + fix);
+      return delays;
+    }
+
+    function loadImage(url){
+      return new Promise((resolve, reject)=>{
+        const im = new Image();
+        im.decoding = "async";
+        im.onload = ()=> resolve(im);
+        im.onerror = reject;
+        im.src = url;
+      });
+    }
+
+    async function saveAsGif(){
+      saveGifBtn.disabled = true;
+      odaiBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      try{
+        toastShow("GIFを作る…");
+
+        const pal = buildWebSafePalette256();
+        const delays = makeDelays();
+        const bgIndex = 215; // (204,255,255)
+
+        const w = new ChunkWriter(1<<20);
+
+        // Header
+        w.str("GIF89a");
+
+        // Logical Screen Descriptor
+        w.word(RES); w.word(RES);
+        w.byte(0xF7); // GCT=1, CR=7, Sort=0, Size=7 (256)
+        w.byte(bgIndex);
+        w.byte(0);
+
+        // Global Color Table
+        w.bytes(pal);
+
+        // Netscape loop extension (infinite)
+        w.byte(0x21); w.byte(0xFF); w.byte(11);
+        w.str("NETSCAPE2.0");
+        w.byte(3); w.byte(1); w.word(0); w.byte(0);
+
+        const c = document.createElement("canvas");
+        c.width = RES; c.height = RES;
+        const ctx = c.getContext("2d", { willReadFrequently:true });
+        ctx.imageSmoothingEnabled = false;
+
+        for (let fi=0; fi<COUNT; fi++){
+          toastShow(`GIF ${fi+1}/${COUNT}`);
+
+          ctx.clearRect(0,0,RES,RES);
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,RES,RES);
+
+          const url = state.frames[fi]?.img;
+          if (url){
+            const im = await loadImage(url);
+            ctx.drawImage(im, 0, 0, RES, RES);
+          }
+
+          const data = ctx.getImageData(0,0,RES,RES).data;
+          const idxs = new Uint8Array(RES*RES);
+          let p = 0;
+          for (let i=0; i<data.length; i+=4){
+            idxs[p++] = quantWebSafeIndex(data[i], data[i+1], data[i+2]);
+          }
+
+          // Graphics Control Extension
+          w.byte(0x21); w.byte(0xF9); w.byte(4);
+          w.byte(0b00001000); // disposal=2
+          w.word(delays[fi]);
+          w.byte(0); // transparent index (unused)
+          w.byte(0);
+
+          // Image Descriptor
+          w.byte(0x2C);
+          w.word(0); w.word(0);
+          w.word(RES); w.word(RES);
+          w.byte(0); // no local table
+
+          // Image Data
+          const minCodeSize = 8;
+          w.byte(minCodeSize);
+          // ★互換性優先：1行ごとにCLEAR（重いけど壊れにくい）
+          const lzw = lzwEncodeWithResets(idxs, minCodeSize, RES);
+          writeSubBlocks(w, lzw);
+        }
+
+        // Trailer
+        w.byte(0x3B);
+
+        const blob = w.blob("image/gif");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const name = (state.odai?.title || "anim").replace(/[^\p{L}\p{N}_-]/gu, "_");
+        a.href = url;
+        a.download = `5s_${name}_${Date.now()}.gif`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        toastShow("GIFを保存した");
+        log("GIF保存");
+      }catch(e){
+        console.error(e);
+        toastShow("GIFがダメだった");
+      }finally{
+        saveGifBtn.disabled = false;
+        odaiBtn.disabled = false;
+        resetBtn.disabled = false;
+      }
+    }
+
+    function resetAll(){
+      if (!confirm("全部リセットします。いいですか？")) return;
+      exitPreview();
+      state.frames = Array.from({length: COUNT}, ()=>({img:null}));
+      state.cur = 0;
+      clearToTransparent(dctx);
+      octx.clearRect(0,0,RES,RES);
+      undoStack = [];
+      state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
+      ensureOdai();
+      renderGrid();
+      updateTop();
+      renderOnion();
+      saveLocal();
+      toastShow("リセットした");
+      log("リセット");
+    }
+
+    // ---- つなぐ ----
+
+    tKoma.addEventListener("click", ()=>setTab("koma"));
+    tKaku.addEventListener("click", ()=>setTab("kaku"));
+    tMiru.addEventListener("click", ()=>setTab("miru"));
+    tMenu.addEventListener("click", ()=>setTab("menu"));
+
+    slider.addEventListener("input", ()=> {
+      state.cur = Number(slider.value);
+      updateTop();
+      renderFrame();
+      renderGrid();
+    });
+    slider.addEventListener("change", ()=> { select(Number(slider.value)); });
+
+    prev.addEventListener("click", ()=> select(state.cur - 1));
+    next.addEventListener("click", ()=> select(state.cur + 1));
+
+    list.addEventListener("click", openList);
+    close.addEventListener("click", closeList);
+    back.addEventListener("click", (e)=>{ if (e.target === back) closeList(); });
+
+    pen.addEventListener("click", ()=>{ state.tool="pen"; updateTool(); saveLocalSoon(); });
+    erase.addEventListener("click", ()=>{ state.tool="erase"; updateTool(); saveLocalSoon(); });
+
+    undo.addEventListener("click", doUndo);
+    clearBtn.addEventListener("click", ()=>{
+      pushUndo();
+      clearToTransparent(dctx);
+      commit("全消し");
+    });
+
+    onionBtn.addEventListener("click", ()=>{
+      state.onion = !state.onion;
+      updateTool();
+      renderOnion();
+      saveLocalSoon();
+    });
+
+    color.addEventListener("input", ()=>{ state.color = String(color.value); saveLocalSoon(); });
+    size.addEventListener("input", ()=>{
+      state.size = clamp(Number(size.value), 1, 40);
+      w.textContent = String(state.size);
+      saveLocalSoon();
+    });
+
+    playBtn.addEventListener("click", startPlay);
+    stopBtn.addEventListener("click", pausePlay);
+    loopBtn.addEventListener("click", ()=>{ state.loop=!state.loop; updateTool(); saveLocalSoon(); });
+
+    odaiBtn.addEventListener("click", ()=>{
+      state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
+      ensureOdai();
+      saveLocalSoon();
+      toastShow("お題を変えた");
+      log("お題変更");
+    });
+
+    saveGifBtn.addEventListener("click", saveAsGif);
+    resetBtn.addEventListener("click", resetAll);
+
+    draw.addEventListener("pointerdown", (e)=>{
+      if (previewMode !== "none") return;
+      draw.setPointerCapture?.(e.pointerId);
+      begin(pointerPos(e));
+      e.preventDefault();
+    });
+    draw.addEventListener("pointermove", (e)=>{
+      if (!isDown || previewMode !== "none") return;
+      move(pointerPos(e));
+      e.preventDefault();
+    });
+    const endAll = ()=> end();
+    draw.addEventListener("pointerup", endAll);
+    draw.addEventListener("pointercancel", endAll);
+    draw.addEventListener("pointerleave", endAll);
+
+    (function init(){
+      setup();
+      const loaded = loadLocal();
+      ensureOdai();
+      updateTool();
+      renderGrid();
+      updateTop();
+      renderFrame();
+      setTab("koma");
+      if (loaded) toastShow("前のつづき");
+    })();
+  </script></body>
+</html>
