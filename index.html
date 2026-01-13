@@ -1,11 +1,10 @@
 <!doctype html>
-
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#6a7cff" />
-  <title>5秒アニメ</title>
+  <title>5秒アニメ（みんなで）</title>
   <style>
     :root{
       color-scheme: light;
@@ -72,338 +71,379 @@
       font-weight: 1000;
       font-size: 13px;
       white-space:nowrap;
-    }main{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
+    }
+    .dot{ width:10px; height:10px; border-radius:99px; background: rgba(20,20,40,.25); }
+    .dot.on{ background: rgba(53,214,196,.95); }
+    .dot.bad{ background: rgba(255,72,106,.95); }
 
-.stage{
-  flex:0 0 auto;
-  height:54vh;
-  height:54dvh;
-  min-height:320px;
-  max-height:580px;
-  border-radius: var(--R);
-  border: 1px solid rgba(20,20,40,.12);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  position:relative;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  aspect-ratio: 1 / 1;
-  background-image:
-    linear-gradient(rgba(20,20,40,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20,20,40,.045) 1px, transparent 1px);
-  background-size:16px 16px;
-  background-position:center;
-}
-.stage canvas{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  image-rendering: pixelated;
-  display:block;
-}
-/* オニオンは必ず上 */
-#draw{ z-index:2; touch-action:none; }
-#onion{ z-index:3; pointer-events:none; opacity: var(--onionOpacity); }
-#play{ z-index:4; display:none; pointer-events:none; }
-.stage.preview #play{ display:block; }
-.stage.preview #draw{ pointer-events:none; }
-.stage.preview #onion{ opacity: 0; }
+    main{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
 
-.badge{
-  position:absolute;
-  top:10px;
-  left:10px;
-  z-index:10;
-  padding:10px 12px;
-  border-radius:999px;
-  border:1px solid rgba(20,20,40,.12);
-  background: rgba(255,255,255,.90);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 12px 26px rgba(26,26,60,.18);
-  font-weight: 1000;
-  letter-spacing:.06em;
-  font-size: 16px;
-}
+    .stage{
+      flex:0 0 auto;
+      height:54vh;
+      height:54dvh;
+      min-height:320px;
+      max-height:580px;
+      border-radius: var(--R);
+      border: 1px solid rgba(20,20,40,.12);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      aspect-ratio: 1 / 1;
+      background-image:
+        linear-gradient(rgba(20,20,40,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20,20,40,.045) 1px, transparent 1px);
+      background-size:16px 16px;
+      background-position:center;
+    }
+    .stage canvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      image-rendering: pixelated;
+      display:block;
+    }
+    #draw{ z-index:2; touch-action:none; }
+    #onion{ z-index:3; pointer-events:none; opacity: var(--onionOpacity); }
+    #play{ z-index:4; display:none; pointer-events:none; }
+    .stage.preview #play{ display:block; }
+    .stage.preview #draw{ pointer-events:none; }
+    .stage.preview #onion{ opacity: 0; }
 
-.panel{
-  flex:1;
-  min-height:0;
-  background: rgba(255,255,255,.88);
-  border: 1px solid var(--line);
-  border-radius: var(--R);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  backdrop-filter: blur(6px);
-}
-.tab{ flex:1; min-height:0; overflow:auto; padding:10px; display:none; }
-.tab.on{ display:block; }
+    .badge{
+      position:absolute;
+      top:10px;
+      left:10px;
+      z-index:10;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(20,20,40,.12);
+      background: rgba(255,255,255,.90);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 12px 26px rgba(26,26,60,.18);
+      font-weight: 1000;
+      letter-spacing:.06em;
+      font-size: 16px;
+    }
 
-.bar{
-  display:grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap:8px;
-  padding:10px;
-  border-top: 1px solid rgba(20,20,40,.08);
-  background: rgba(255,255,255,.74);
-}
-.tbtn{
-  padding:10px 8px;
-  border-radius:14px;
-  border: 1px solid rgba(20,20,40,.10);
-  background: rgba(255,255,255,.98);
-  color: rgba(20,20,40,.72);
-  font-weight: 1000;
-  font-size: 13px;
-  letter-spacing:.04em;
-  cursor:pointer;
-  -webkit-tap-highlight-color: transparent;
-  user-select:none;
-  box-shadow: 0 10px 22px rgba(26,26,60,.10);
-}
-.tbtn.on{
-  background: linear-gradient(135deg, rgba(106,124,255,.22), rgba(255,92,200,.14));
-  border-color: rgba(106,124,255,.28);
-  color: rgba(20,20,40,.95);
-}
+    .panel{
+      flex:1;
+      min-height:0;
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--line);
+      border-radius: var(--R);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      backdrop-filter: blur(6px);
+    }
+    .tab{ flex:1; min-height:0; overflow:auto; padding:10px; display:none; }
+    .tab.on{ display:block; }
 
-.box{
-  background: rgba(255,255,255,.97);
-  border: 1px solid rgba(20,20,40,.10);
-  border-radius: 16px;
-  padding:10px;
-  box-shadow: 0 12px 26px rgba(26,26,60,.10);
-}
-.row{ display:flex; gap:10px; align-items:center; }
-.row > *{ flex:1; min-width:0; }
-.btn{
-  padding: 12px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(20,20,40,.12);
-  background:#fff;
-  color: rgba(20,20,40,.95);
-  font-size: 15px;
-  font-weight: 1000;
-  cursor:pointer;
-  -webkit-tap-highlight-color: transparent;
-  user-select:none;
-  box-shadow: 0 12px 26px rgba(26,26,60,.12);
-}
-.btn.ok{ background: linear-gradient(135deg, rgba(53,214,196,.28), rgba(106,124,255,.18)); border-color: rgba(53,214,196,.30); }
-.btn.sub{ background: rgba(255,255,255,.98); }
-.btn.bad{ background: linear-gradient(135deg, rgba(255,72,106,.22), rgba(255,211,74,.18)); border-color: rgba(255,72,106,.28); }
-.btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .bar{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+      padding:10px;
+      border-top: 1px solid rgba(20,20,40,.08);
+      background: rgba(255,255,255,.74);
+    }
+    .tbtn{
+      padding:10px 8px;
+      border-radius:14px;
+      border: 1px solid rgba(20,20,40,.10);
+      background: rgba(255,255,255,.98);
+      color: rgba(20,20,40,.72);
+      font-weight: 1000;
+      font-size: 13px;
+      letter-spacing:.04em;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+      box-shadow: 0 10px 22px rgba(26,26,60,.10);
+    }
+    .tbtn.on{
+      background: linear-gradient(135deg, rgba(106,124,255,.22), rgba(255,92,200,.14));
+      border-color: rgba(106,124,255,.28);
+      color: rgba(20,20,40,.95);
+    }
 
-.mini{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.75); margin: 0 0 8px 2px; letter-spacing:.02em; }
+    .box{
+      background: rgba(255,255,255,.97);
+      border: 1px solid rgba(20,20,40,.10);
+      border-radius: 16px;
+      padding:10px;
+      box-shadow: 0 12px 26px rgba(26,26,60,.10);
+    }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .row > *{ flex:1; min-width:0; }
+    .btn{
+      padding: 12px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(20,20,40,.12);
+      background:#fff;
+      color: rgba(20,20,40,.95);
+      font-size: 15px;
+      font-weight: 1000;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+      box-shadow: 0 12px 26px rgba(26,26,60,.12);
+    }
+    .btn.ok{ background: linear-gradient(135deg, rgba(53,214,196,.28), rgba(106,124,255,.18)); border-color: rgba(53,214,196,.30); }
+    .btn.sub{ background: rgba(255,255,255,.98); }
+    .btn.bad{ background: linear-gradient(135deg, rgba(255,72,106,.22), rgba(255,211,74,.18)); border-color: rgba(255,72,106,.28); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-input[type="range"]{ width:100%; }
-input[type="color"]{
-  width:100%;
-  height:48px;
-  border-radius:16px;
-  border: 1px solid rgba(20,20,40,.12);
-  background:#fff;
-  padding:6px;
-  box-shadow: 0 12px 26px rgba(26,26,60,.10);
-}
+    .mini{ font-weight: 900; font-size: 12px; color: rgba(20,20,40,.75); margin: 0 0 8px 2px; letter-spacing:.02em; }
 
-.grid2{ display:grid; grid-template-columns: .9fr 1.1fr; gap:10px; align-items:center; }
+    input[type="range"]{ width:100%; }
+    input[type="color"]{
+      width:100%;
+      height:48px;
+      border-radius:16px;
+      border: 1px solid rgba(20,20,40,.12);
+      background:#fff;
+      padding:6px;
+      box-shadow: 0 12px 26px rgba(26,26,60,.10);
+    }
+    input[type="text"], input[type="url"]{
+      width:100%;
+      height:44px;
+      border-radius:16px;
+      border:1px solid rgba(20,20,40,.12);
+      padding:0 12px;
+      font-weight:900;
+      font-size:14px;
+      box-shadow: 0 12px 26px rgba(26,26,60,.08);
+      outline:none;
+    }
 
-.back{
-  position:fixed;
-  inset:0;
-  background: rgba(20,20,40,.35);
-  backdrop-filter: blur(3px);
-  display:none;
-  align-items:flex-end;
-  justify-content:center;
-  padding:12px;
-  z-index:50;
-}
-.back.on{ display:flex; }
-.sheet{
-  width: min(980px, 100%);
-  max-height: 80vh;
-  max-height: 80dvh;
-  background: rgba(255,255,255,.97);
-  border: 1px solid rgba(20,20,40,.12);
-  border-radius: 22px;
-  box-shadow: 0 30px 80px rgba(26,26,60,.22);
-  overflow:hidden;
-}
-.sheetTop{
-  padding: 12px 12px 10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  border-bottom: 1px solid rgba(20,20,40,.10);
-  font-weight: 1000;
-  letter-spacing:.06em;
-}
-.sheetGrid{
-  padding:12px;
-  display:grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap:8px;
-}
-.f{
-  height:34px;
-  border-radius:12px;
-  border: 1px solid rgba(20,20,40,.12);
-  background: rgba(255,255,255,.98);
-  font-weight: 1000;
-  cursor:pointer;
-  box-shadow: 0 10px 22px rgba(26,26,60,.10);
-  -webkit-tap-highlight-color: transparent;
-  user-select:none;
-}
-.f.on{ outline:2px solid rgba(106,124,255,.90); outline-offset:1px; }
-.f.empty{ opacity:.65; }
+    .grid2{ display:grid; grid-template-columns: .9fr 1.1fr; gap:10px; align-items:center; }
 
-.toast{
-  position:fixed;
-  left:12px;
-  right:12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  z-index:90;
-  display:none;
-  justify-content:center;
-  pointer-events:none;
-}
-.toast.on{ display:flex; }
-.toast .t{
-  max-width: 980px;
-  width: 100%;
-  background: rgba(255,255,255,.92);
-  border: 1px solid rgba(20,20,40,.12);
-  border-radius: 18px;
-  padding: 10px 12px;
-  box-shadow: 0 20px 60px rgba(26,26,60,.24);
-  font-weight: 1000;
-  color: rgba(20,20,40,.90);
-  text-align:center;
-}
+    .back{
+      position:fixed;
+      inset:0;
+      background: rgba(20,20,40,.35);
+      backdrop-filter: blur(3px);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding:12px;
+      z-index:50;
+    }
+    .back.on{ display:flex; }
+    .sheet{
+      width: min(980px, 100%);
+      max-height: 80vh;
+      max-height: 80dvh;
+      background: rgba(255,255,255,.97);
+      border: 1px solid rgba(20,20,40,.12);
+      border-radius: 22px;
+      box-shadow: 0 30px 80px rgba(26,26,60,.22);
+      overflow:hidden;
+    }
+    .sheetTop{
+      padding: 12px 12px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(20,20,40,.10);
+      font-weight: 1000;
+      letter-spacing:.06em;
+    }
+    .sheetGrid{
+      padding:12px;
+      display:grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap:8px;
+    }
+    .f{
+      height:34px;
+      border-radius:12px;
+      border: 1px solid rgba(20,20,40,.12);
+      background: rgba(255,255,255,.98);
+      font-weight: 1000;
+      cursor:pointer;
+      box-shadow: 0 10px 22px rgba(26,26,60,.10);
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    .f.on{ outline:2px solid rgba(106,124,255,.90); outline-offset:1px; }
+    .f.empty{ opacity:.65; }
 
-@media (max-height: 720px){
-  .stage{ min-height: 280px; height: 52vh; height: 52dvh; }
-  header{ min-height: 56px; }
-}
+    .toast{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index:90;
+      display:none;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .toast.on{ display:flex; }
+    .toast .t{
+      max-width: 980px;
+      width: 100%;
+      background: rgba(255,255,255,.92);
+      border:  1px solid rgba(20,20,40,.12);
+      border-radius: 18px;
+      padding: 10px 12px;
+      box-shadow: 0 20px 60px rgba(26,26,60,.24);
+      font-weight: 1000;
+      color: rgba(20,20,40,.90);
+      text-align:center;
+    }
 
+    @media (max-height: 720px){
+      .stage{ min-height: 280px; height: 52vh; height: 52dvh; }
+      header{ min-height: 56px; }
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
       <div class="left">
-        <div class="title">5秒アニメ</div>
+        <div class="title">5秒アニメ（みんなで）</div>
         <div class="themeLine" id="themeLine">お題：-</div>
       </div>
       <div class="right">
         <div class="chip" id="chipKoma">コマ 1 / 60</div>
-        <div class="chip" id="chipAuto">保存: ON</div>
+        <div class="chip" id="chipNet"><span class="dot" id="netDot"></span><span id="netText">通信: OFF</span></div>
       </div>
-    </header><main>
-  <div class="stage" id="stage">
-    <canvas id="draw"></canvas>
-    <canvas id="onion" aria-hidden="true"></canvas>
-    <canvas id="play" aria-hidden="true"></canvas>
-    <div class="badge" id="badge">コマ 1 / 60</div>
+    </header>
+
+    <main>
+      <div class="stage" id="stage">
+        <canvas id="draw"></canvas>
+        <canvas id="onion" aria-hidden="true"></canvas>
+        <canvas id="play" aria-hidden="true"></canvas>
+        <div class="badge" id="badge">コマ 1 / 60</div>
+      </div>
+
+      <section class="panel">
+        <div class="tab on" id="tabKoma">
+          <div class="box">
+            <div class="mini">コマ</div>
+            <input id="slider" type="range" min="0" max="59" value="0" />
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <button id="prev" class="btn sub">◀ 前</button>
+            <button id="next" class="btn sub">次 ▶</button>
+            <button id="list" class="btn sub">一覧</button>
+          </div>
+
+          <div class="box" style="margin-top:10px;">
+            <div class="mini">部屋</div>
+            <div class="row">
+              <input id="room" type="text" placeholder="部屋ID" />
+              <button id="copyRoom" class="btn sub" style="flex:0 0 auto; min-width:110px;">コピー</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button id="newRoom" class="btn sub">部屋を作る</button>
+              <button id="rejoin" class="btn ok">入る/入り直す</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab" id="tabKaku">
+          <div class="box">
+            <div class="mini">道具</div>
+            <div class="row">
+              <button id="pen" class="btn ok">ペン</button>
+              <button id="erase" class="btn sub">消す</button>
+              <button id="undo" class="btn sub">戻す</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button id="clear" class="btn bad">全消し</button>
+              <button id="onionBtn" class="btn sub">前: ON</button>
+            </div>
+          </div>
+
+          <div class="box" style="margin-top:10px;">
+            <div class="mini">色 / 太さ</div>
+            <div class="grid2">
+              <input id="color" type="color" value="#141428" aria-label="色" />
+              <div class="box" style="padding:10px;">
+                <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
+                <input id="size" type="range" min="1" max="40" value="6" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab" id="tabMiru">
+          <div class="box">
+            <div class="mini">見る</div>
+            <div class="row">
+              <button id="playBtn" class="btn ok">▶ 見る</button>
+              <button id="stopBtn" class="btn sub">■ 止める</button>
+              <button id="loopBtn" class="btn sub">くり返し: OFF</button>
+            </div>
+
+            <div class="box" style="margin-top:10px;">
+              <div class="mini">いま</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="font-weight:1000; min-width:60px;" id="pf">-</div>
+                <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(106,124,255,.12); overflow:hidden;">
+                  <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(106,124,255,.85), rgba(255,92,200,.75));"></div>
+                </div>
+                <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab" id="tabMenu">
+          <div class="box">
+            <div class="mini">通信</div>
+            <div class="row">
+              <input id="wsBase" type="url" placeholder="https://サーバーURL（例）" />
+              <button id="saveWs" class="btn sub" style="flex:0 0 auto; min-width:110px;">保存</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button id="connectBtn" class="btn ok">つなぐ</button>
+              <button id="resyncBtn" class="btn sub">同期</button>
+            </div>
+
+            <div class="box" style="margin-top:10px;">
+              <div class="mini">お題</div>
+              <div style="font-weight:1000; font-size:16px;" id="odai">-</div>
+              <div style="margin-top:6px; font-weight:900; color: rgba(20,20,40,.70);" id="odai2">-</div>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="changeTheme" class="btn sub">お題を変える</button>
+                <button id="saveGifBtn" class="btn ok">GIFで保存</button>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <button id="resetBtn" class="btn bad">この端末の保存を消す</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <button class="tbtn on" id="tKoma">コマ</button>
+          <button class="tbtn" id="tKaku">描く</button>
+          <button class="tbtn" id="tMiru">見る</button>
+          <button class="tbtn" id="tMenu">メニュー</button>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <section class="panel">
-    <div class="tab on" id="tabKoma">
-      <div class="box">
-        <div class="mini">コマ</div>
-        <input id="slider" type="range" min="0" max="59" value="0" />
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <button id="prev" class="btn sub">◀ 前</button>
-        <button id="next" class="btn sub">次 ▶</button>
-        <button id="list" class="btn sub">一覧</button>
-      </div>
-    </div>
-
-    <div class="tab" id="tabKaku">
-      <div class="box">
-        <div class="mini">道具</div>
-        <div class="row">
-          <button id="pen" class="btn ok">ペン</button>
-          <button id="erase" class="btn sub">消す</button>
-          <button id="undo" class="btn sub">戻す</button>
-        </div>
-        <div class="row" style="margin-top:10px;">
-          <button id="clear" class="btn bad">全消し</button>
-          <button id="onionBtn" class="btn sub">前: ON</button>
-        </div>
-      </div>
-
-      <div class="box" style="margin-top:10px;">
-        <div class="mini">色 / 太さ</div>
-        <div class="grid2">
-          <input id="color" type="color" value="#141428" aria-label="色" />
-          <div class="box" style="padding:10px;">
-            <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
-            <input id="size" type="range" min="1" max="40" value="6" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tab" id="tabMiru">
-      <div class="box">
-        <div class="mini">見る</div>
-        <div class="row">
-          <button id="playBtn" class="btn ok">▶ 見る</button>
-          <button id="stopBtn" class="btn sub">■ 止める</button>
-          <button id="loopBtn" class="btn sub">くり返し: OFF</button>
-        </div>
-
-        <div class="box" style="margin-top:10px;">
-          <div class="mini">いま</div>
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div style="font-weight:1000; min-width:60px;" id="pf">-</div>
-            <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(106,124,255,.12); overflow:hidden;">
-              <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(106,124,255,.85), rgba(255,92,200,.75));"></div>
-            </div>
-            <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tab" id="tabMenu">
-      <div class="box">
-        <div class="mini">お題</div>
-        <div style="font-weight:1000; font-size:16px;" id="odai">-</div>
-        <div style="margin-top:6px; font-weight:900; color: rgba(20,20,40,.70);" id="odai2">-</div>
-
-        <div class="row" style="margin-top:10px;">
-          <button id="odaiBtn" class="btn sub">お題を変える</button>
-          <button id="saveGifBtn" class="btn ok">GIFで保存</button>
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button id="resetBtn" class="btn bad">全部リセット</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="bar">
-      <button class="tbtn on" id="tKoma">コマ</button>
-      <button class="tbtn" id="tKaku">描く</button>
-      <button class="tbtn" id="tMiru">見る</button>
-      <button class="tbtn" id="tMenu">メニュー</button>
-    </div>
-  </section>
-</main>
-
-  </div>  <div class="back" id="back" aria-hidden="true">
+  <div class="back" id="back" aria-hidden="true">
     <div class="sheet" role="dialog" aria-modal="true">
       <div class="sheetTop">
         <div>コマ一覧</div>
@@ -411,11 +451,17 @@ input[type="color"]{
       </div>
       <div class="sheetGrid" id="grid"></div>
     </div>
-  </div>  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>  <script>
+  </div>
+
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+
+  <script>
+    // ====== 固定設定 ======
     const RES = 256;
     const FPS = 12;
     const COUNT = 60;
 
+    // ====== DOM ======
     const $ = (id) => document.getElementById(id);
 
     const stage = $("stage");
@@ -427,10 +473,18 @@ input[type="color"]{
     const chipKoma = $("chipKoma");
     const themeLine = $("themeLine");
 
+    const netDot = $("netDot");
+    const netText = $("netText");
+
     const slider = $("slider");
     const prev = $("prev");
     const next = $("next");
     const list = $("list");
+
+    const roomInp = $("room");
+    const copyRoomBtn = $("copyRoom");
+    const newRoomBtn = $("newRoom");
+    const rejoinBtn = $("rejoin");
 
     const pen = $("pen");
     const erase = $("erase");
@@ -448,9 +502,14 @@ input[type="color"]{
     const pt = $("pt");
     const bar = $("bar");
 
+    const wsBase = $("wsBase");
+    const saveWs = $("saveWs");
+    const connectBtn = $("connectBtn");
+    const resyncBtn = $("resyncBtn");
+
     const odai = $("odai");
     const odai2 = $("odai2");
-    const odaiBtn = $("odaiBtn");
+    const changeThemeBtn = $("changeTheme");
     const saveGifBtn = $("saveGifBtn");
     const resetBtn = $("resetBtn");
 
@@ -470,12 +529,16 @@ input[type="color"]{
     const toast = $("toast");
     const toastText = $("toastText");
 
+    // ====== 状態 ======
     let octx, dctx, pctx;
 
-    const LS_KEY = "anim5s_offline_v3";
+    const LS_KEY = "anim5s_collab_v1";
+    const LS_WS  = "anim5s_ws_base_v1";
 
     let state = {
-      odai: null,
+      roomId: null,
+      playerId: null,
+      theme: null,
       cur: 0,
       tool: "pen",
       color: "#141428",
@@ -497,6 +560,13 @@ input[type="color"]{
     let raf = 0;
     let imgs = [];
 
+    // ====== WebSocket ======
+    let ws = null;
+    let wsWanted = false;
+    let reconnectTimer = 0;
+    let backoff = 600;
+
+    // ====== Utils ======
     const clamp = (n,a,b)=>Math.max(a, Math.min(b,n));
 
     function toastShow(s){
@@ -511,6 +581,206 @@ input[type="color"]{
       if (state.logs.length > 200) state.logs.length = 200;
     }
 
+    function randRoom(){
+      const abc = "abcdefghjkmnpqrstuvwxyz23456789";
+      let s = "";
+      for (let i=0;i<7;i++) s += abc[(Math.random()*abc.length)|0];
+      return s;
+    }
+
+    function parseQS(){
+      const u = new URL(location.href);
+      const room = u.searchParams.get("room");
+      const server = u.searchParams.get("server");
+      return { room, server };
+    }
+
+    function setQS(roomId){
+      const u = new URL(location.href);
+      u.searchParams.set("room", roomId);
+      history.replaceState(null, "", u.toString());
+    }
+
+    async function copyText(s){
+      if (navigator.clipboard?.writeText){
+        try{ await navigator.clipboard.writeText(s); return; }catch{}
+      }
+      const ta = document.createElement("textarea");
+      ta.value = s;
+      document.body.appendChild(ta);
+      ta.select();
+      try{ document.execCommand("copy"); }catch{}
+      ta.remove();
+    }
+
+    function wsBaseToWsUrl(base){
+      base = (base||"").trim();
+      if (!base) return "";
+      try{
+        if (base.startsWith("ws://") || base.startsWith("wss://")){
+          const u = new URL(base);
+          if (!u.pathname || u.pathname === "/") u.pathname = "/ws";
+          return u.toString();
+        }
+        const u = new URL(base);
+        if (u.protocol === "http:") u.protocol = "ws:";
+        if (u.protocol === "https:") u.protocol = "wss:";
+        if (!u.pathname || u.pathname === "/") u.pathname = "/ws";
+        return u.toString();
+      }catch{
+        return "";
+      }
+    }
+
+    function setNet(ok, bad=false){
+      netDot.classList.toggle("on", ok);
+      netDot.classList.toggle("bad", bad);
+      netText.textContent = ok ? "通信: ON" : "通信: OFF";
+    }
+
+    function send(msg){
+      if (!ws || ws.readyState !== 1) return false;
+      try{
+        ws.send(JSON.stringify(msg));
+        return true;
+      }catch{ return false; }
+    }
+
+    function connect(){
+      clearTimeout(reconnectTimer);
+      if (!wsWanted) return;
+
+      const base = (localStorage.getItem(LS_WS) || "").trim();
+      const url = wsBaseToWsUrl(base);
+      if (!url){
+        toastShow("サーバーURLがない");
+        setNet(false, true);
+        return;
+      }
+
+      if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+
+      try{
+        ws = new WebSocket(url);
+      }catch{
+        setNet(false, true);
+        toastShow("つなげない");
+        return;
+      }
+
+      ws.onopen = ()=>{
+        backoff = 600;
+        setNet(true);
+        toastShow("つながった");
+        const roomId = (roomInp.value || state.roomId || "").trim();
+        if (roomId) joinRoom(roomId);
+      };
+
+      ws.onmessage = (ev)=>{
+        let m = null;
+        try{ m = JSON.parse(ev.data); }catch{ return; }
+        if (!m || typeof m.t !== "string") return;
+
+        if (m.t === "welcome"){
+          state.playerId = m.playerId || state.playerId;
+          log(`welcome ${state.playerId||"-"}`);
+          return;
+        }
+        if (m.t === "room_state"){
+          applyRoomState(m.data);
+          return;
+        }
+        if (m.t === "frame_committed"){
+          const d = m.data || {};
+          const i = d.frameIndex|0;
+          const img = d.img;
+          if (i>=0 && i<COUNT && typeof img === "string"){
+            state.frames[i].img = img;
+            if (i === state.cur) renderFrame();
+            renderGrid();
+            renderOnion();
+            if (d.by && d.by !== state.playerId){
+              toastShow(`更新: コマ${i+1}`);
+            }
+          }
+          if (d.theme) applyTheme(d.theme);
+          return;
+        }
+        if (m.t === "theme_changed"){
+          if (m.data?.theme) applyTheme(m.data.theme);
+          toastShow("お題が変わった");
+          return;
+        }
+        if (m.t === "error"){
+          toastShow(m.message || "エラー");
+          return;
+        }
+      };
+
+      ws.onclose = ()=>{
+        setNet(false);
+        if (!wsWanted) return;
+        scheduleReconnect();
+      };
+      ws.onerror = ()=>{
+        setNet(false, true);
+      };
+    }
+
+    function scheduleReconnect(){
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(()=>{
+        connect();
+        backoff = Math.min(8000, Math.floor(backoff*1.6));
+      }, backoff);
+    }
+
+    function joinRoom(roomId){
+      roomId = (roomId||"").trim();
+      if (!roomId) return;
+
+      state.roomId = roomId;
+      roomInp.value = roomId;
+      setQS(roomId);
+
+      send({ v:1, t:"join", roomId });
+      send({ v:1, t:"resync", roomId });
+      toastShow(`部屋: ${roomId}`);
+      log(`join ${roomId}`);
+      saveLocalSoon();
+    }
+
+    function applyTheme(theme){
+      state.theme = theme;
+      const title = theme?.title || "-";
+      const note  = theme?.note || "-";
+      odai.textContent = title;
+      odai2.textContent = note;
+      themeLine.textContent = `お題：${title}`;
+      saveLocalSoon();
+    }
+
+    function applyRoomState(d){
+      if (!d) return;
+      if (d.roomId) state.roomId = d.roomId;
+      if (d.theme) applyTheme(d.theme);
+      if (Array.isArray(d.frames) && d.frames.length === COUNT){
+        for (let i=0;i<COUNT;i++){
+          const img = d.frames[i];
+          state.frames[i].img = (typeof img === "string") ? img : null;
+        }
+      }
+      roomInp.value = state.roomId || "";
+      updateTop();
+      renderGrid();
+      renderFrame();
+      renderOnion();
+      toastShow("同期した");
+      log("resync");
+      saveLocalSoon();
+    }
+
+    // ====== Canvas / UI ======
     function setup(){
       onion.width = RES; onion.height = RES;
       draw.width  = RES; draw.height  = RES;
@@ -523,30 +793,6 @@ input[type="color"]{
       octx.imageSmoothingEnabled = false;
       dctx.imageSmoothingEnabled = true;
       pctx.imageSmoothingEnabled = false;
-
-      clearToTransparent(dctx);
-      clearToTransparent(pctx);
-      octx.clearRect(0,0,RES,RES);
-    }
-
-    function clearToTransparent(ctx){
-      ctx.clearRect(0,0,RES,RES);
-    }
-
-    function makeOdai(seed){
-      const titles = [
-        "歩く犬","通勤時間","駅のホーム","雨の日の傘","信号待ち","朝の歯みがき",
-        "走る猫","お弁当作り","自転車で帰る","宿題の時間","エレベーター","コンビニ入店"
-      ];
-      const notes = ["動きがわかるように","シンプルでOK","表情を大きめに","3つくらい動かす","最初と最後を変える","オチがあると強い"];
-      return { seed, title: titles[seed % titles.length], note: notes[(seed * 7) % notes.length] };
-    }
-
-    function ensureOdai(){
-      if (!state.odai) state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
-      odai.textContent = state.odai.title;
-      odai2.textContent = state.odai.note;
-      themeLine.textContent = `お題：${state.odai.title}`;
     }
 
     function setTab(name){
@@ -562,12 +808,8 @@ input[type="color"]{
     function updateTop(){
       const t = `コマ ${state.cur+1} / ${COUNT}`;
       badge.textContent = t;
-      chipKoma.textContent = t;
+      $("chipKoma").textContent = t;
       slider.value = String(state.cur);
-
-      // 編集できるのはオフラインなので常にOK
-      clearBtn.disabled = false;
-      undo.disabled = false;
     }
 
     function updateTool(){
@@ -607,7 +849,7 @@ input[type="color"]{
     }
 
     function renderFrame(){
-      clearToTransparent(dctx);
+      dctx.clearRect(0,0,RES,RES);
       undoStack = [];
 
       const imgUrl = state.frames[state.cur]?.img;
@@ -621,7 +863,7 @@ input[type="color"]{
       im.decoding = "async";
       im.onload = () => {
         if (state.cur !== cur) return;
-        clearToTransparent(dctx);
+        dctx.clearRect(0,0,RES,RES);
         dctx.drawImage(im, 0, 0, RES, RES);
         renderOnion();
       };
@@ -684,9 +926,10 @@ input[type="color"]{
     function saveLocal(){
       try{
         const data = {
-          v: 3,
+          v: 1,
           at: Date.now(),
-          odai: state.odai,
+          roomId: state.roomId,
+          theme: state.theme,
           cur: state.cur,
           tool: state.tool,
           color: state.color,
@@ -704,14 +947,16 @@ input[type="color"]{
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return false;
         const d = JSON.parse(raw);
-        if (!d || d.v !== 3) return false;
+        if (!d || d.v !== 1) return false;
+
         if (Array.isArray(d.frames) && d.frames.length === COUNT){
           for (let i=0;i<COUNT;i++){
             const img = d.frames[i];
             state.frames[i].img = (typeof img === "string") ? img : null;
           }
         }
-        if (d.odai && typeof d.odai.title === "string") state.odai = d.odai;
+        if (d.theme) state.theme = d.theme;
+        if (typeof d.roomId === "string") state.roomId = d.roomId;
         if (Number.isInteger(d.cur)) state.cur = clamp(d.cur, 0, COUNT-1);
         if (d.tool === "pen" || d.tool === "erase") state.tool = d.tool;
         if (typeof d.color === "string") state.color = d.color;
@@ -723,12 +968,18 @@ input[type="color"]{
     }
 
     function commit(why){
-      state.frames[state.cur].img = compositeToPngDataUrl();
-      log(`更新: コマ${state.cur+1} (${why})`);
+      const img = compositeToPngDataUrl();
+      state.frames[state.cur].img = img;
       renderGrid();
       renderOnion();
       updateTop();
       saveLocalSoon();
+
+      if (ws && ws.readyState === 1 && state.roomId){
+        send({ v:1, t:"submit_frame", roomId: state.roomId, frameIndex: state.cur, img });
+      }
+
+      log(`更新: コマ${state.cur+1} (${why})`);
     }
 
     function pointerPos(e){
@@ -787,6 +1038,7 @@ input[type="color"]{
       log(`移動: コマ${i+1}`);
     }
 
+    // ====== 再生（停止したらそのフレームで止まる） ======
     function prepImgs(){
       imgs = state.frames.map(f=>{
         if (!f.img) return null;
@@ -843,8 +1095,8 @@ input[type="color"]{
     function tick(){
       if (previewMode !== "playing") return;
 
-      const now = performance.now();
-      const sec = (now - playStart) / 1000;
+      const nowP = performance.now();
+      const sec = (nowP - playStart) / 1000;
       playPosSec = sec;
 
       const dur = COUNT / FPS;
@@ -852,11 +1104,10 @@ input[type="color"]{
 
       if (fi >= COUNT){
         if (state.loop){
-          playStart = now;
+          playStart = nowP;
           playPosSec = 0;
           fi = 0;
         }else{
-          // 最後のコマで止まる
           fi = COUNT - 1;
           paintPlay(fi);
           pf.textContent = `コマ${fi+1}`;
@@ -884,8 +1135,7 @@ input[type="color"]{
       back.setAttribute("aria-hidden", "true");
     }
 
-    // ---- GIF（壊れにくさ優先） ----
-
+    // ====== GIF 保存（Web-safe 256色） ======
     function buildWebSafePalette256(){
       const pal = new Uint8Array(256*3);
       const steps = [0,51,102,153,204,255];
@@ -900,7 +1150,6 @@ input[type="color"]{
           }
         }
       }
-      // 残りは白で埋める（安全）
       for (; idx<256; idx++){
         pal[idx*3+0] = 255;
         pal[idx*3+1] = 255;
@@ -998,7 +1247,6 @@ input[type="color"]{
 
       for (let i=1;i<indices.length;i++){
         if (resetEvery && (i % resetEvery) === 0){
-          // 途中で強制リセット（互換性優先）
           write(prefix);
           write(CLEAR);
           reset();
@@ -1032,7 +1280,6 @@ input[type="color"]{
     }
 
     function makeDelays(){
-      // 5秒=500(1/100秒)
       const delays = new Uint16Array(COUNT);
       const ideal = 100 / FPS;
       const target = 500;
@@ -1063,31 +1310,22 @@ input[type="color"]{
 
     async function saveAsGif(){
       saveGifBtn.disabled = true;
-      odaiBtn.disabled = true;
-      resetBtn.disabled = true;
-
       try{
         toastShow("GIFを作る…");
 
         const pal = buildWebSafePalette256();
         const delays = makeDelays();
-        const bgIndex = 215; // (204,255,255)
+        const bgIndex = 215;
 
         const w = new ChunkWriter(1<<20);
 
-        // Header
         w.str("GIF89a");
-
-        // Logical Screen Descriptor
         w.word(RES); w.word(RES);
-        w.byte(0xF7); // GCT=1, CR=7, Sort=0, Size=7 (256)
+        w.byte(0xF7);
         w.byte(bgIndex);
         w.byte(0);
-
-        // Global Color Table
         w.bytes(pal);
 
-        // Netscape loop extension (infinite)
         w.byte(0x21); w.byte(0xFF); w.byte(11);
         w.str("NETSCAPE2.0");
         w.byte(3); w.byte(1); w.word(0); w.byte(0);
@@ -1117,34 +1355,29 @@ input[type="color"]{
             idxs[p++] = quantWebSafeIndex(data[i], data[i+1], data[i+2]);
           }
 
-          // Graphics Control Extension
           w.byte(0x21); w.byte(0xF9); w.byte(4);
-          w.byte(0b00001000); // disposal=2
+          w.byte(0b00001000);
           w.word(delays[fi]);
-          w.byte(0); // transparent index (unused)
+          w.byte(0);
           w.byte(0);
 
-          // Image Descriptor
           w.byte(0x2C);
           w.word(0); w.word(0);
           w.word(RES); w.word(RES);
-          w.byte(0); // no local table
+          w.byte(0);
 
-          // Image Data
           const minCodeSize = 8;
           w.byte(minCodeSize);
-          // ★互換性優先：1行ごとにCLEAR（重いけど壊れにくい）
           const lzw = lzwEncodeWithResets(idxs, minCodeSize, RES);
           writeSubBlocks(w, lzw);
         }
 
-        // Trailer
         w.byte(0x3B);
 
         const blob = w.blob("image/gif");
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const name = (state.odai?.title || "anim").replace(/[^\p{L}\p{N}_-]/gu, "_");
+        const name = (state.theme?.title || "anim").replace(/[^\p{L}\p{N}_-]/gu, "_");
         a.href = url;
         a.download = `5s_${name}_${Date.now()}.gif`;
         document.body.appendChild(a);
@@ -1153,37 +1386,21 @@ input[type="color"]{
         URL.revokeObjectURL(url);
 
         toastShow("GIFを保存した");
-        log("GIF保存");
       }catch(e){
         console.error(e);
         toastShow("GIFがダメだった");
       }finally{
         saveGifBtn.disabled = false;
-        odaiBtn.disabled = false;
-        resetBtn.disabled = false;
       }
     }
 
-    function resetAll(){
-      if (!confirm("全部リセットします。いいですか？")) return;
-      exitPreview();
-      state.frames = Array.from({length: COUNT}, ()=>({img:null}));
-      state.cur = 0;
-      clearToTransparent(dctx);
-      octx.clearRect(0,0,RES,RES);
-      undoStack = [];
-      state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
-      ensureOdai();
-      renderGrid();
-      updateTop();
-      renderOnion();
-      saveLocal();
-      toastShow("リセットした");
-      log("リセット");
+    function resetLocalOnly(){
+      if (!confirm("この端末の保存だけ消します。いいですか？")) return;
+      try{ localStorage.removeItem(LS_KEY); }catch{}
+      toastShow("消した");
     }
 
-    // ---- つなぐ ----
-
+    // ====== イベント ======
     tKoma.addEventListener("click", ()=>setTab("koma"));
     tKaku.addEventListener("click", ()=>setTab("kaku"));
     tMiru.addEventListener("click", ()=>setTab("miru"));
@@ -1204,13 +1421,36 @@ input[type="color"]{
     close.addEventListener("click", closeList);
     back.addEventListener("click", (e)=>{ if (e.target === back) closeList(); });
 
+    newRoomBtn.addEventListener("click", ()=>{
+      const r = randRoom();
+      roomInp.value = r;
+      state.roomId = r;
+      setQS(r);
+      toastShow("部屋を作った");
+      saveLocalSoon();
+    });
+
+    rejoinBtn.addEventListener("click", ()=>{
+      const r = (roomInp.value||"").trim();
+      if (!r){ toastShow("部屋IDがない"); return; }
+      joinRoom(r);
+    });
+
+    copyRoomBtn.addEventListener("click", async ()=>{
+      const u = new URL(location.href);
+      const r = (roomInp.value||"").trim();
+      if (r) u.searchParams.set("room", r);
+      await copyText(u.toString());
+      toastShow("コピーした");
+    });
+
     pen.addEventListener("click", ()=>{ state.tool="pen"; updateTool(); saveLocalSoon(); });
     erase.addEventListener("click", ()=>{ state.tool="erase"; updateTool(); saveLocalSoon(); });
 
-    undo.addEventListener("click", doUndo);
+    undo.addEventListener("click", ()=>{ doUndo(); });
     clearBtn.addEventListener("click", ()=>{
       pushUndo();
-      clearToTransparent(dctx);
+      dctx.clearRect(0,0,RES,RES);
       commit("全消し");
     });
 
@@ -1232,16 +1472,30 @@ input[type="color"]{
     stopBtn.addEventListener("click", pausePlay);
     loopBtn.addEventListener("click", ()=>{ state.loop=!state.loop; updateTool(); saveLocalSoon(); });
 
-    odaiBtn.addEventListener("click", ()=>{
-      state.odai = makeOdai(Math.floor(Math.random()*1_000_000));
-      ensureOdai();
-      saveLocalSoon();
-      toastShow("お題を変えた");
-      log("お題変更");
+    saveWs.addEventListener("click", ()=>{
+      const v = (wsBase.value||"").trim();
+      if (!v){ toastShow("空"); return; }
+      localStorage.setItem(LS_WS, v);
+      toastShow("保存した");
+    });
+
+    connectBtn.addEventListener("click", ()=>{
+      wsWanted = true;
+      connect();
+    });
+
+    resyncBtn.addEventListener("click", ()=>{
+      if (!state.roomId){ toastShow("部屋がない"); return; }
+      send({ v:1, t:"resync", roomId: state.roomId });
+    });
+
+    changeThemeBtn.addEventListener("click", ()=>{
+      if (!state.roomId){ toastShow("部屋がない"); return; }
+      send({ v:1, t:"change_theme", roomId: state.roomId });
     });
 
     saveGifBtn.addEventListener("click", saveAsGif);
-    resetBtn.addEventListener("click", resetAll);
+    resetBtn.addEventListener("click", resetLocalOnly);
 
     draw.addEventListener("pointerdown", (e)=>{
       if (previewMode !== "none") return;
@@ -1259,16 +1513,51 @@ input[type="color"]{
     draw.addEventListener("pointercancel", endAll);
     draw.addEventListener("pointerleave", endAll);
 
+    // ====== 起動 ======
     (function init(){
       setup();
+
+      const qs = parseQS();
       const loaded = loadLocal();
-      ensureOdai();
+
+      if (qs.server){
+        localStorage.setItem(LS_WS, qs.server);
+      }
+      wsBase.value = localStorage.getItem(LS_WS) || "";
+
+      const room = (qs.room || state.roomId || "").trim();
+      if (room){
+        state.roomId = room;
+        roomInp.value = room;
+        setQS(room);
+      }else{
+        const r = randRoom();
+        state.roomId = r;
+        roomInp.value = r;
+        setQS(r);
+      }
+
+      if (state.theme){
+        applyTheme(state.theme);
+      }else{
+        applyTheme({ title:"-", note:"-" });
+      }
+
       updateTool();
       renderGrid();
       updateTop();
       renderFrame();
       setTab("koma");
+
+      setNet(false);
+
       if (loaded) toastShow("前のつづき");
+
+      if ((localStorage.getItem(LS_WS)||"").trim()){
+        wsWanted = true;
+        connect();
+      }
     })();
-  </script></body>
+  </script>
+</body>
 </html>
