@@ -1,6 +1,5 @@
-
-import { CFG, $, makeToast, getWsBase, wsUrlFromBase, loadPendingAction, clearPendingAction, touchMyRoom } from "./common.js";
-
+// editor.js（moduleなし版）
+const { CFG, $, makeToast, getWsBase, wsUrlFromBase, loadPendingAction, clearPendingAction, touchMyRoom } = window.Anim5S;
 const say = makeToast();
 
 // ===== 内部ログ（ユーザーには見せない） =====
