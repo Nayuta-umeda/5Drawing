@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7b6cff" />
+  <title>部屋を作る</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+
+  <div class="wrap">
+    <header>
+      <div class="hL">
+        <div class="hTitle">部屋を作る</div>
+        <div class="hSub" id="subLine">お題を入れて、1枚目だけ描く</div>
+      </div>
+      <div class="hR">
+        
+<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
+
+      </div>
+    </header>
+    <main>
+
+      <section class="card pad">
+        <div class="box">
+          <div class="mini">お題</div>
+          <input id="themeInput" type="text" placeholder="お題" />
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">公開 / プライベート</div>
+          <div class="row">
+            <button class="btn ok" id="visPublic">公開</button>
+            <button class="btn sub" id="visPrivate">プライベート</button>
+          </div>
+          <div class="box" style="margin-top:10px;" id="passBox" hidden>
+            <div class="mini">合言葉</div>
+            <input id="passInput" type="password" placeholder="合言葉" />
+          </div>
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">つぎ</div>
+          <button class="btn ok" id="go">アニメ編集へ</button>
+        </div>
+      </section>
+
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+
+  <script type="module">
+    import { $, makeToast, savePendingAction } from "./common.js";
+
+    const say = makeToast();
+
+    const STD = [
+      "歩く犬","通勤時間","雨の日","ねこが伸びる","信号待ち","おにぎり","ジャンプ","落ちる","走る人","電車が来る",
+      "寝起き","ラーメン","掃除機","スマホ通知","お風呂","買い物袋","風で帽子が飛ぶ","エレベーター","あくび","雪だるま"
+    ];
+
+    let vis = "public";
+    const passBox = $("passBox");
+    function sync(){
+      $("visPublic").className = "btn " + (vis==="public"?"ok":"sub");
+      $("visPrivate").className = "btn " + (vis==="private"?"ok":"sub");
+      passBox.hidden = (vis!=="private");
+    }
+    $("visPublic").addEventListener("click",()=>{vis="public"; sync();});
+    $("visPrivate").addEventListener("click",()=>{vis="private"; sync();});
+    sync();
+
+    $("go").addEventListener("click", ()=>{
+      const theme = $("themeInput").value.trim() || STD[(Math.random()*STD.length)|0];
+      const pass = vis==="private" ? $("passInput").value : "";
+      if(vis==="private" && !pass){ say("合言葉"); return; }
+      savePendingAction({ kind:"create", visibility:vis, theme, passphrase:pass });
+      location.href = "./editor.html";
+    });
+  </script>
+
+    </main>
+  </div>
+</body>
+</html>

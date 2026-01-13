@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7b6cff" />
+  <title>アニメ編集</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="hL">
+        <div class="hTitle">アニメ編集</div>
+        <div class="hSub" id="themeLine">お題：-</div>
+      </div>
+      <div class="hR">
+        <div class="chip" id="chipRoom" style="display:none;">ID -</div>
+        <div class="chip" id="chipKoma">コマ -</div>
+        <div class="chip"><span class="dot off" id="netDot"></span><span id="netText">通信: OFF</span></div>
+        <a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="stage" id="stage">
+        <canvas id="draw"></canvas>
+        <canvas id="onion" aria-hidden="true"></canvas>
+        <canvas id="play" aria-hidden="true"></canvas>
+        <div class="badge" id="badge">準備中</div>
+      </div>
+
+      <section class="card pad">
+        <div class="box">
+          <div class="mini">道具</div>
+          <div class="row">
+            <button class="btn ok" id="penBtn">ペン</button>
+            <button class="btn sub" id="eraserBtn">消す</button>
+            <button class="btn sub" id="undoBtn">戻す</button>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn bad" id="clearBtn">全消し</button>
+            <button class="btn sub" id="onionBtn">前: ON</button>
+            <button class="btn ok" id="sendBtn">送る</button>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">色 / 太さ</div>
+          <div class="grid2">
+            <input id="color" type="color" value="#141425" />
+            <div class="box" style="padding:10px;">
+              <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
+              <input id="size" type="range" min="1" max="40" value="6" />
+            </div>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top:10px;" id="frameBox">
+          <div class="mini">コマ（プライベートだけ）</div>
+          <input id="slider" type="range" min="0" max="59" value="0" />
+          <div class="row" style="margin-top:10px;">
+            <button class="btn sub" id="prevBtn">◀ 前</button>
+            <button class="btn sub" id="nextBtn">次 ▶</button>
+            <button class="btn sub" id="syncBtn">同期</button>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">見る / 保存</div>
+          <div class="row">
+            <button class="btn ok" id="playBtn">▶ 見る</button>
+            <button class="btn sub" id="stopBtn">■ 止める</button>
+            <button class="btn sub" id="loopBtn">くり返し: OFF</button>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn ok" id="saveGifBtn">GIFで保存</button>
+          </div>
+
+          <div class="box" style="margin-top:10px;">
+            <div class="mini">いま</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="font-weight:1000; min-width:64px;" id="pf">-</div>
+              <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(123,108,255,.12); overflow:hidden;">
+                <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(123,108,255,.85), rgba(255,87,198,.75));"></div>
+              </div>
+              <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top:10px;">
+          <div class="mini">部屋</div>
+          <div class="row">
+            <button class="btn sub" id="copyIdBtn">IDコピー</button>
+            <button class="btn bad" id="clearLocalBtn">この端末の保存を消す</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+  <script type="module" src="./editor.js"></script>
+</body>
+</html>

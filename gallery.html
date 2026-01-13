@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7b6cff" />
+  <title>自分の作品</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+
+  <div class="wrap">
+    <header>
+      <div class="hL">
+        <div class="hTitle">自分の作品</div>
+        <div class="hSub" id="subLine">この端末が関わった部屋（見るだけ）</div>
+      </div>
+      <div class="hR">
+        
+<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
+
+      </div>
+    </header>
+    <main>
+
+      <section class="card pad">
+        <div class="box">
+          <div class="mini">一覧</div>
+          <div class="list" id="list"></div>
+        </div>
+      </section>
+
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+
+  <script type="module">
+    import { $, makeToast, loadMyRooms, escapeHtml, savePendingAction } from "./common.js";
+
+    const say = makeToast();
+    const list = $("list");
+    const rooms = loadMyRooms();
+
+    function mkEmpty(){
+      const d=document.createElement("div");
+      d.className="item";
+      d.innerHTML='<div class="a"><div class="id">まだない</div><div class="sub">描いた部屋がここに出る</div></div>';
+      list.appendChild(d);
+    }
+
+    function addRoom(r){
+      const it=document.createElement("div");
+      it.className="item";
+      const sub=`${r.theme} / ${r.visibility==="private"?"プライベート":"公開"}`;
+      it.innerHTML=`
+        <div class="a">
+          <div class="id">ID ${escapeHtml(r.roomId)}</div>
+          <div class="sub">${escapeHtml(sub)}</div>
+        </div>
+        <div class="row" style="flex:0 0 auto; gap:8px;">
+          <button class="btn sub" style="min-width:92px; padding:10px 12px;">見る</button>
+          <button class="btn sub" style="min-width:92px; padding:10px 12px;">コピー</button>
+        </div>`;
+      const [bView,bCopy]=it.querySelectorAll("button");
+      bView.addEventListener("click",()=>{
+        savePendingAction({ kind:"view", roomId:r.roomId, passphrase: r.visibility==="private" ? (r.pass||"") : "" });
+        location.href="./editor.html";
+      });
+      bCopy.addEventListener("click", async ()=>{
+        try{
+          await navigator.clipboard.writeText(r.roomId);
+          say("コピー");
+        }catch{
+          const t=document.createElement("textarea");
+          t.value=r.roomId; document.body.appendChild(t);
+          t.select(); document.execCommand("copy"); t.remove();
+          say("コピー");
+        }
+      });
+      list.appendChild(it);
+    }
+
+    if(!rooms.length) mkEmpty();
+    else rooms.forEach(addRoom);
+  </script>
+
+    </main>
+  </div>
+</body>
+</html>
