@@ -32,19 +32,22 @@
           <button class="btn ok" id="go" type="button">編集へ</button>
         </div>
       </section>
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
-
-  <script type="module">
-    import { $, makeToast, savePendingAction, getWsBase } from "./common.js";
-    const say = makeToast();
-    if(!getWsBase()) say("config.js のURLを入れて");
-    $("go").addEventListener("click", ()=>{
-      savePendingAction({ kind:"random" });
-      location.href = "./editor.html";
-    });
-  </script>
-
-    </main>
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div></main>
   </div>
+
+<script src="./config.js"></script>
+<script src="./common.js"></script>
+<script>
+(function(){
+  const {$, makeToast, savePendingAction, getWsBase} = window.Anim5S;
+  const say = makeToast();
+  if(!getWsBase()) say("config.js のURLを入れて");
+  $("go").addEventListener("click", ()=>{
+    savePendingAction({ kind:"random" });
+    location.href = "./editor.html";
+  });
+})();
+</script>
+
 </body>
 </html>

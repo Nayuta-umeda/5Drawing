@@ -33,16 +33,17 @@
           <a class="btn sub" href="./gallery.html">自分の作品</a>
         </div>
       </section>
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
-
-  <script type="module">
-    import { makeToast, getWsBase } from "./common.js";
-    const say = makeToast();
-    // ③ URL入力なし。config.js の値を使う（なければ注意だけ）
-    if(!getWsBase()) say("config.js のURLを入れて");
-  </script>
-
-    </main>
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div></main>
   </div>
+
+<script src="./config.js"></script>
+<script src="./common.js"></script>
+<script>
+  (function(){
+    const say = window.Anim5S.makeToast();
+    if(!window.Anim5S.getWsBase()) say("config.js のURLを入れて");
+  })();
+</script>
+
 </body>
 </html>

@@ -44,40 +44,43 @@
           <button class="btn ok" id="go" type="button">編集へ</button>
         </div>
       </section>
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
-
-  <script type="module">
-    import { $, makeToast, savePendingAction, getWsBase } from "./common.js";
-    const say = makeToast();
-
-    const STD = [
-      "歩く犬","通勤時間","雨の日","ねこが伸びる","信号待ち","おにぎり","ジャンプ","落ちる","走る人","電車が来る",
-      "寝起き","ラーメン","掃除機","スマホ通知","お風呂","買い物袋","風で帽子が飛ぶ","エレベーター","あくび","雪だるま"
-    ];
-
-    if(!getWsBase()) say("config.js のURLを入れて");
-
-    let vis = "public";
-    const passBox = $("passBox");
-    function sync(){
-      $("visPublic").className = "btn " + (vis==="public"?"ok":"sub");
-      $("visPrivate").className = "btn " + (vis==="private"?"ok":"sub");
-      passBox.hidden = (vis!=="private");
-    }
-    $("visPublic").addEventListener("click",()=>{vis="public"; sync();});
-    $("visPrivate").addEventListener("click",()=>{vis="private"; sync();});
-    sync();
-
-    $("go").addEventListener("click", ()=>{
-      const theme = $("themeInput").value.trim() || STD[(Math.random()*STD.length)|0];
-      const pass = vis==="private" ? $("passInput").value : "";
-      if(vis==="private" && !pass){ say("合言葉"); return; }
-      savePendingAction({ kind:"create", visibility:vis, theme, passphrase:pass });
-      location.href = "./editor.html";
-    });
-  </script>
-
-    </main>
+  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div></main>
   </div>
+
+<script src="./config.js"></script>
+<script src="./common.js"></script>
+<script>
+(function(){
+  const {$, makeToast, savePendingAction, getWsBase} = window.Anim5S;
+  const say = makeToast();
+
+  const STD = [
+    "歩く犬","通勤時間","雨の日","ねこが伸びる","信号待ち","おにぎり","ジャンプ","落ちる","走る人","電車が来る",
+    "寝起き","ラーメン","掃除機","スマホ通知","お風呂","買い物袋","風で帽子が飛ぶ","エレベーター","あくび","雪だるま"
+  ];
+
+  if(!getWsBase()) say("config.js のURLを入れて");
+
+  let vis = "public";
+  const passBox = $("passBox");
+  function sync(){
+    $("visPublic").className = "btn " + (vis==="public"?"ok":"sub");
+    $("visPrivate").className = "btn " + (vis==="private"?"ok":"sub");
+    passBox.hidden = (vis!=="private");
+  }
+  $("visPublic").addEventListener("click",()=>{vis="public"; sync();});
+  $("visPrivate").addEventListener("click",()=>{vis="private"; sync();});
+  sync();
+
+  $("go").addEventListener("click", ()=>{
+    const theme = $("themeInput").value.trim() || STD[(Math.random()*STD.length)|0];
+    const pass = vis==="private" ? $("passInput").value : "";
+    if(vis==="private" && !pass){ say("合言葉"); return; }
+    savePendingAction({ kind:"create", visibility:vis, theme, passphrase:pass });
+    location.href = "./editor.html";
+  });
+})();
+</script>
+
 </body>
 </html>
