@@ -13,51 +13,49 @@
     <header>
       <div class="hL">
         <div class="hTitle">部屋を作る</div>
-        <div class="hSub" id="subLine">お題を入れて、1枚目だけ描く</div>
+        <div class="hSub">お題 → 1枚目</div>
       </div>
       <div class="hR">
-        
-<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
-
-      </div>
+<a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+</div>
     </header>
     <main>
 
       <section class="card pad">
         <div class="box">
           <div class="mini">お題</div>
-          <input id="themeInput" type="text" placeholder="お題" />
+          <input id="themeInput" type="text" placeholder="例: 歩く犬" />
         </div>
 
         <div class="box" style="margin-top:10px;">
           <div class="mini">公開 / プライベート</div>
-          <div class="row">
-            <button class="btn ok" id="visPublic">公開</button>
-            <button class="btn sub" id="visPrivate">プライベート</button>
+          <div class="row" style="margin-top:6px;">
+            <button class="btn ok" id="visPublic" type="button">公開</button>
+            <button class="btn sub" id="visPrivate" type="button">プライベート</button>
           </div>
+
           <div class="box" style="margin-top:10px;" id="passBox" hidden>
             <div class="mini">合言葉</div>
             <input id="passInput" type="password" placeholder="合言葉" />
           </div>
         </div>
 
-        <div class="box" style="margin-top:10px;">
-          <div class="mini">つぎ</div>
-          <button class="btn ok" id="go">アニメ編集へ</button>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn ok" id="go" type="button">編集へ</button>
         </div>
       </section>
-
   <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
 
   <script type="module">
-    import { $, makeToast, savePendingAction } from "./common.js";
-
+    import { $, makeToast, savePendingAction, getWsBase } from "./common.js";
     const say = makeToast();
 
     const STD = [
       "歩く犬","通勤時間","雨の日","ねこが伸びる","信号待ち","おにぎり","ジャンプ","落ちる","走る人","電車が来る",
       "寝起き","ラーメン","掃除機","スマホ通知","お風呂","買い物袋","風で帽子が飛ぶ","エレベーター","あくび","雪だるま"
     ];
+
+    if(!getWsBase()) say("config.js のURLを入れて");
 
     let vis = "public";
     const passBox = $("passBox");

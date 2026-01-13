@@ -13,13 +13,11 @@
     <header>
       <div class="hL">
         <div class="hTitle">合言葉で入る</div>
-        <div class="hSub" id="subLine">IDと合言葉で自由に制作</div>
+        <div class="hSub">ID + 合言葉</div>
       </div>
       <div class="hR">
-        
-<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
-
-      </div>
+<a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+</div>
     </header>
     <main>
 
@@ -34,17 +32,16 @@
           <input id="pass" type="password" placeholder="合言葉" />
         </div>
 
-        <div class="box" style="margin-top:10px;">
-          <div class="mini">つぎ</div>
-          <button class="btn ok" id="go">アニメ編集へ</button>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn ok" id="go" type="button">編集へ</button>
         </div>
       </section>
-
   <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
 
   <script type="module">
-    import { $, makeToast, savePendingAction } from "./common.js";
+    import { $, makeToast, savePendingAction, getWsBase } from "./common.js";
     const say = makeToast();
+    if(!getWsBase()) say("config.js のURLを入れて");
 
     $("go").addEventListener("click", ()=>{
       const roomId = $("roomId").value.trim().toUpperCase();

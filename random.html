@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#7b6cff" />
-  <title>だれかの続きを描く</title>
+  <title>誰かの続きを描く</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
@@ -12,38 +12,32 @@
   <div class="wrap">
     <header>
       <div class="hL">
-        <div class="hTitle">だれかの続きを描く</div>
-        <div class="hSub" id="subLine">公開の未完成からランダムで1コマ</div>
+        <div class="hTitle">誰かの続きを描く</div>
+        <div class="hSub">公開の未完成 → 1コマ</div>
       </div>
       <div class="hR">
-        
-<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
-
-      </div>
+<a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+</div>
     </header>
     <main>
 
       <section class="card pad">
         <div class="box">
-          <div class="mini">やること</div>
-          <div style="font-weight:1000; line-height:1.6;">
-            公開の未完成アニメから1つえらぶ<br>
-            空きコマを1つ担当（予約あり）<br>
-            送ったらロビーにもどる
+          <div style="font-weight:1000; line-height:1.7;">
+            未完成の公開から1つえらぶ<br>
+            空きコマを1つ担当
           </div>
         </div>
-
-        <div class="box" style="margin-top:10px;">
-          <div class="mini">つぎ</div>
-          <button class="btn ok" id="go">アニメ編集へ</button>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn ok" id="go" type="button">編集へ</button>
         </div>
       </section>
-
   <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
 
   <script type="module">
-    import { $, makeToast, savePendingAction } from "./common.js";
+    import { $, makeToast, savePendingAction, getWsBase } from "./common.js";
     const say = makeToast();
+    if(!getWsBase()) say("config.js のURLを入れて");
     $("go").addEventListener("click", ()=>{
       savePendingAction({ kind:"random" });
       location.href = "./editor.html";

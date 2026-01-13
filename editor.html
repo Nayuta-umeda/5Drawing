@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
-<body>
   <div class="wrap">
     <header>
       <div class="hL">
@@ -19,7 +18,7 @@
         <div class="chip" id="chipRoom" style="display:none;">ID -</div>
         <div class="chip" id="chipKoma">コマ -</div>
         <div class="chip"><span class="dot off" id="netDot"></span><span id="netText">通信: OFF</span></div>
-        <a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
+        <a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
       </div>
     </header>
 
@@ -34,21 +33,21 @@
       <section class="card pad">
         <div class="box">
           <div class="mini">道具</div>
-          <div class="row">
-            <button class="btn ok" id="penBtn">ペン</button>
-            <button class="btn sub" id="eraserBtn">消す</button>
-            <button class="btn sub" id="undoBtn">戻す</button>
+          <div class="row" style="margin-top:6px;">
+            <button class="btn ok" id="penBtn" type="button">ペン</button>
+            <button class="btn sub" id="eraserBtn" type="button">消す</button>
+            <button class="btn sub" id="undoBtn" type="button">戻す</button>
           </div>
           <div class="row" style="margin-top:10px;">
-            <button class="btn bad" id="clearBtn">全消し</button>
-            <button class="btn sub" id="onionBtn">前: ON</button>
-            <button class="btn ok" id="sendBtn">送る</button>
+            <button class="btn bad" id="clearBtn" type="button">全消し</button>
+            <button class="btn sub" id="onionBtn" type="button">前: ON</button>
+            <button class="btn ok" id="sendBtn" type="button">送信</button>
           </div>
         </div>
 
         <div class="box" style="margin-top:10px;">
           <div class="mini">色 / 太さ</div>
-          <div class="grid2">
+          <div class="grid2" style="margin-top:6px;">
             <input id="color" type="color" value="#141425" />
             <div class="box" style="padding:10px;">
               <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
@@ -59,42 +58,31 @@
 
         <div class="box" style="margin-top:10px;" id="frameBox">
           <div class="mini">コマ（プライベートだけ）</div>
-          <input id="slider" type="range" min="0" max="59" value="0" />
+          <input id="slider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
           <div class="row" style="margin-top:10px;">
-            <button class="btn sub" id="prevBtn">◀ 前</button>
-            <button class="btn sub" id="nextBtn">次 ▶</button>
-            <button class="btn sub" id="syncBtn">同期</button>
+            <button class="btn sub" id="prevBtn" type="button">◀ 前</button>
+            <button class="btn sub" id="nextBtn" type="button">次 ▶</button>
+            <button class="btn sub" id="syncBtn" type="button">同期</button>
           </div>
         </div>
 
         <div class="box" style="margin-top:10px;">
           <div class="mini">見る / 保存</div>
-          <div class="row">
-            <button class="btn ok" id="playBtn">▶ 見る</button>
-            <button class="btn sub" id="stopBtn">■ 止める</button>
-            <button class="btn sub" id="loopBtn">くり返し: OFF</button>
+          <div class="row" style="margin-top:6px;">
+            <button class="btn ok" id="playBtn" type="button">▶ 見る</button>
+            <button class="btn sub" id="stopBtn" type="button">■ 止める</button>
+            <button class="btn sub" id="loopBtn" type="button">くり返し: OFF</button>
           </div>
           <div class="row" style="margin-top:10px;">
-            <button class="btn ok" id="saveGifBtn">GIFで保存</button>
-          </div>
-
-          <div class="box" style="margin-top:10px;">
-            <div class="mini">いま</div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <div style="font-weight:1000; min-width:64px;" id="pf">-</div>
-              <div style="flex:1; height:10px; border-radius:999px; border:1px solid rgba(20,20,40,.12); background: rgba(123,108,255,.12); overflow:hidden;">
-                <div id="bar" style="height:100%; width:0%; background: linear-gradient(90deg, rgba(123,108,255,.85), rgba(255,87,198,.75));"></div>
-              </div>
-              <div style="font-weight:1000; min-width:62px; text-align:right;" id="pt">0.00</div>
-            </div>
+            <button class="btn ok" id="saveGifBtn" type="button">GIFで保存</button>
           </div>
         </div>
 
         <div class="box" style="margin-top:10px;">
           <div class="mini">部屋</div>
-          <div class="row">
-            <button class="btn sub" id="copyIdBtn">IDコピー</button>
-            <button class="btn bad" id="clearLocalBtn">この端末の保存を消す</button>
+          <div class="row" style="margin-top:6px;">
+            <button class="btn sub" id="copyIdBtn" type="button">IDコピー</button>
+            <button class="btn bad" id="clearLocalBtn" type="button">端末の保存を消す</button>
           </div>
         </div>
       </section>

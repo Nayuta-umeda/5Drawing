@@ -13,36 +13,34 @@
     <header>
       <div class="hL">
         <div class="hTitle">自分の作品</div>
-        <div class="hSub" id="subLine">この端末が関わった部屋（見るだけ）</div>
+        <div class="hSub">この端末の履歴</div>
       </div>
       <div class="hR">
-        
-<a class="btn sub" href="./index.html" style="flex:0 0 auto; min-width:92px; padding:10px 12px;">ロビー</a>
-
-      </div>
+<a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+</div>
     </header>
     <main>
 
       <section class="card pad">
         <div class="box">
           <div class="mini">一覧</div>
-          <div class="list" id="list"></div>
+          <div class="list" id="list" style="margin-top:10px;"></div>
         </div>
       </section>
-
   <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
 
   <script type="module">
-    import { $, makeToast, loadMyRooms, escapeHtml, savePendingAction } from "./common.js";
-
+    import { $, makeToast, loadMyRooms, savePendingAction, getWsBase } from "./common.js";
     const say = makeToast();
+    if(!getWsBase()) say("config.js のURLを入れて");
+
     const list = $("list");
     const rooms = loadMyRooms();
 
     function mkEmpty(){
       const d=document.createElement("div");
       d.className="item";
-      d.innerHTML='<div class="a"><div class="id">まだない</div><div class="sub">描いた部屋がここに出る</div></div>';
+      d.innerHTML='<div><div class="id">まだない</div><div class="sub">描いた部屋がここに出る</div></div>';
       list.appendChild(d);
     }
 
@@ -51,17 +49,21 @@
       it.className="item";
       const sub=`${r.theme} / ${r.visibility==="private"?"プライベート":"公開"}`;
       it.innerHTML=`
-        <div class="a">
-          <div class="id">ID ${escapeHtml(r.roomId)}</div>
-          <div class="sub">${escapeHtml(sub)}</div>
+        <div>
+          <div class="id">ID ${r.roomId}</div>
+          <div class="sub">${sub}</div>
         </div>
-        <div class="row" style="flex:0 0 auto; gap:8px;">
-          <button class="btn sub" style="min-width:92px; padding:10px 12px;">見る</button>
-          <button class="btn sub" style="min-width:92px; padding:10px 12px;">コピー</button>
+        <div class="row" style="flex:0 0 auto; gap:8px; width:auto;">
+          <button class="btn sub" style="width:auto; min-width:80px; padding:10px 12px; font-size:14px;" type="button">見る</button>
+          <button class="btn sub" style="width:auto; min-width:80px; padding:10px 12px; font-size:14px;" type="button">コピー</button>
         </div>`;
       const [bView,bCopy]=it.querySelectorAll("button");
       bView.addEventListener("click",()=>{
-        savePendingAction({ kind:"view", roomId:r.roomId, passphrase: r.visibility==="private" ? (r.pass||"") : "" });
+        savePendingAction({
+          kind:"view",
+          roomId:r.roomId,
+          passphrase: r.visibility==="private" ? (r.pass||"") : ""
+        });
         location.href="./editor.html";
       });
       bCopy.addEventListener("click", async ()=>{
