@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WS TEST</title>
+<style>
+  body{font-family:system-ui;margin:16px}
+  pre{background:#111;color:#0f0;padding:12px;border-radius:10px;white-space:pre-wrap}
+  input,button{font-size:16px;padding:10px;border-radius:10px;border:1px solid #ccc}
+  button{margin-left:6px}
+</style>
+
+<h2>WebSocket 接続テスト</h2>
+<p>base は <code>https://xxxx.onrender.com</code> の形で入れる（/ws なし）</p>
+
+<input id="base" style="width:70%" placeholder="https://xxxx.onrender.com">
+<button id="go">接続</button>
+
+<pre id="log">log...</pre>
+
+<script>
+const log = (s)=>{ document.getElementById('log').textContent += "\n" + s; };
+document.getElementById('go').onclick = ()=>{
+  const base = document.getElementById('base').value.trim().replace(/\/+$/,'');
+  if(!base){ log("base を入れて"); return; }
+
+  const u = new URL(base);
+  u.protocol = (u.protocol === "https:") ? "wss:" : "ws:";
+  u.pathname = "/ws"; // ★ここ重要：/ws固定
+  const wsUrl = u.toString();
+
+  log("WS URL = " + wsUrl);
+  try{
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = ()=> log("✅ open");
+    ws.onmessage = (e)=> log("📩 msg: " + e.data);
+    ws.onerror = ()=> log("❌ error（詳細はブラウザ側）");
+    ws.onclose = (e)=> log(`🔚 close code=${e.code} reason=${e.reason||"(none)"}`);
+  }catch(err){
+    log("例外: " + err.message);
+  }
+};
+</script>
