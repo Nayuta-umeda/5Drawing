@@ -152,12 +152,12 @@
     btn.style.zIndex = "9999";
     btn.style.padding = "10px 14px";
     btn.style.borderRadius = "14px";
-    btn.style.border = "1px solid rgba(255,255,255,.15)";
-    btn.style.background = "rgba(20,23,34,.92)";
-    btn.style.color = "#e6e6eb";
+    btn.style.border = "1px solid rgba(29,31,42,.14)";
+    btn.style.background = "rgba(255,255,255,.88)";
+    btn.style.color = "#1d1f2a";
     btn.style.fontSize = "14px";
     btn.style.fontWeight = "700";
-    btn.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+    btn.style.boxShadow = "0 10px 26px rgba(20,24,35,.10)";
     btn.style.backdropFilter = "blur(8px)";
 
     const overlay = document.createElement("div");
@@ -177,9 +177,9 @@
     panel.style.margin = "0 auto";
     panel.style.height = "calc(100vh - 28px)";
     panel.style.borderRadius = "18px";
-    panel.style.background = "#141722";
-    panel.style.border = "1px solid rgba(255,255,255,.08)";
-    panel.style.boxShadow = "0 10px 30px rgba(0,0,0,.45)";
+    panel.style.background = "#ffffff";
+    panel.style.border = "1px solid rgba(29,31,42,.12)";
+    panel.style.boxShadow = "0 10px 26px rgba(20,24,35,.12)";
     panel.style.display = "flex";
     panel.style.flexDirection = "column";
     panel.style.overflow = "hidden";
@@ -189,7 +189,7 @@
     top.style.gap = "10px";
     top.style.alignItems = "center";
     top.style.padding = "12px";
-    top.style.borderBottom = "1px solid rgba(255,255,255,.08)";
+    top.style.borderBottom = "1px solid rgba(29,31,42,.12)";
 
     const title = document.createElement("div");
     title.textContent = "V12 Debug Log";
@@ -207,9 +207,9 @@
     filter.style.minWidth = "160px";
     filter.style.padding = "10px 12px";
     filter.style.borderRadius = "12px";
-    filter.style.border = "1px solid rgba(255,255,255,.12)";
-    filter.style.background = "#0f1220";
-    filter.style.color = "#e6e6eb";
+    filter.style.border = "1px solid rgba(29,31,42,.14)";
+    filter.style.background = "#f1f4ff";
+    filter.style.color = "#1d1f2a";
 
     const btnCopy = document.createElement("button");
     btnCopy.textContent = "コピー";
@@ -242,7 +242,7 @@
     pre.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
     pre.style.fontSize = "12px";
     pre.style.lineHeight = "1.45";
-    pre.style.color = "#e6e6eb";
+    pre.style.color = "#1d1f2a";
     pre.style.opacity = ".92";
     body.appendChild(pre);
 
@@ -253,9 +253,9 @@
     function styleMini(b) {
       b.style.padding = "10px 12px";
       b.style.borderRadius = "12px";
-      b.style.border = "1px solid rgba(255,255,255,.12)";
-      b.style.background = "#0f1220";
-      b.style.color = "#e6e6eb";
+      b.style.border = "1px solid rgba(29,31,42,.14)";
+      b.style.background = "#f1f4ff";
+      b.style.color = "#1d1f2a";
       b.style.fontWeight = "700";
     }
 

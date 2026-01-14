@@ -1,15 +1,15 @@
 :root{
-  color-scheme: dark;
-  --bg:#0b0d10;
-  --panel:#141722;
-  --panel2:#0f1220;
-  --text:#e6e6eb;
-  --muted:rgba(230,230,235,.75);
-  --line:rgba(255,255,255,.08);
-  --accent:#7aa7ff;
-  --ok:#3bd671;
-  --warn:#ff5a6a;
-  --shadow:0 10px 30px rgba(0,0,0,.35);
+  color-scheme: light;
+  --bg:#f7f7fb;
+  --panel:#ffffff;
+  --panel2:#f1f4ff;
+  --text:#1d1f2a;
+  --muted:rgba(29,31,42,.65);
+  --line:rgba(29,31,42,.12);
+  --accent:#6ea8ff;
+  --ok:#43c97a;
+  --warn:#ff6b7a;
+  --shadow:0 10px 26px rgba(20,24,35,.10);
   --r:18px;
 }
 *{ box-sizing:border-box; }
@@ -24,7 +24,7 @@ a{ color:var(--accent); text-decoration:none; }
 .container{
   max-width:980px;
   margin:0 auto;
-  padding:18px;
+  padding:14px;
   min-height:100vh;
   display:flex;
   flex-direction:column;
@@ -43,30 +43,30 @@ a{ color:var(--accent); text-decoration:none; }
   letter-spacing:.08em;
   text-transform:uppercase;
   text-align:center;
-  opacity:.9;
+  opacity:.88;
   margin-top:8px;
 }
 .muted{ color:var(--muted); }
 .btn{
   width:100%;
-  padding:16px 14px;
+  padding:14px 14px;
   border-radius:16px;
-  border:1px solid rgba(255,255,255,.12);
+  border:1px solid rgba(29,31,42,.14);
   background:var(--panel2);
   color:var(--text);
   font-weight:800;
   font-size:18px;
 }
 .btn:active{ transform:translateY(1px); }
-.btnAccent{ background:rgba(122,167,255,.18); border-color:rgba(122,167,255,.35); }
-.btnOk{ background:rgba(59,214,113,.18); border-color:rgba(59,214,113,.35); }
-.btnWarn{ background:rgba(255,90,106,.12); border-color:rgba(255,90,106,.35); }
+.btnAccent{ background:rgba(110,168,255,.25); border-color:rgba(110,168,255,.45); }
+.btnOk{ background:rgba(67,201,122,.20); border-color:rgba(67,201,122,.40); }
+.btnWarn{ background:rgba(255,107,122,.18); border-color:rgba(255,107,122,.40); }
 .input{
   width:100%;
   padding:14px 12px;
   border-radius:14px;
-  border:1px solid rgba(255,255,255,.12);
-  background:var(--panel2);
+  border:1px solid rgba(29,31,42,.14);
+  background:#ffffff;
   color:var(--text);
   font-size:16px;
 }
@@ -75,8 +75,8 @@ a{ color:var(--accent); text-decoration:none; }
   display:inline-block;
   padding:6px 10px;
   border-radius:999px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.06);
+  border:1px solid rgba(29,31,42,.14);
+  background:rgba(29,31,42,.04);
   font-size:12px;
   opacity:.95;
 }
