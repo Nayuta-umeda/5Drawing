@@ -1,15 +1,17 @@
-import { qs, clamp, addMyRoom } from "./util.js";
+import { qs, clamp, addMyRoom, saveWorkSnapshot } from "./util.js";
 
 window.V12.ensureLogUi();
 window.V12.addLog("editor_init", { href: location.href });
 
 const roomId = (qs("roomId") || "").toString().toUpperCase();
 const password = (qs("password") ?? qs("pass") ?? "").toString();
-let reservationToken = (qs("token") ?? qs("reservationToken") ?? "").toString();
+const mode = (qs("mode") || "").toString(); // "private" なら全コマ編集
+const isPrivateMode = mode === "private";
 
 const themeName = document.getElementById("themeName");
 const roomIdLabel = document.getElementById("roomIdLabel");
 const assignedLabel = document.getElementById("assignedLabel");
+const viewingLabel = document.getElementById("viewingLabel");
 const timerEl = document.getElementById("timer");
 const statusEl = document.getElementById("status");
 const submitBtn = document.getElementById("submit");
@@ -83,28 +85,31 @@ function undo(){
 function setStatus(t){ statusEl.textContent = t; }
 
 function isEditable(){
-  return cur === assigned && !submitted;
+  if (submitted) return false;
+  if (isPrivateMode) return true;
+  return cur === assigned;
 }
 
 // --- internal draft autosave (per stroke end) ---
-function draftKey(){
-  const a = (assigned >= 0) ? assigned : "x";
-  return `anim5s_draft_v12:${roomId}:${a}`;
+function draftKey(frameIndex){
+  const a = isPrivateMode ? `p${frameIndex}` : (assigned >= 0 ? `a${assigned}` : "x");
+  return `anim5s_draft_v13:${roomId}:${a}`;
 }
-function saveDraft(dataUrl){
-  try{ sessionStorage.setItem(draftKey(), dataUrl); }catch(e){}
+function saveDraft(frameIndex, dataUrl){
+  try{ sessionStorage.setItem(draftKey(frameIndex), dataUrl); }catch(e){}
 }
-function loadDraft(){
-  try{ return sessionStorage.getItem(draftKey()); }catch(e){ return null; }
+function loadDraft(frameIndex){
+  try{ return sessionStorage.getItem(draftKey(frameIndex)); }catch(e){ return null; }
 }
 function internalUpdateDraft(){
-  // 「手を離すたびに内部更新」：表示用 frames を更新し、sessionStorage に保存
-  if (assigned < 0) return;
   if (!isEditable()) return;
+  const idx = isPrivateMode ? cur : assigned;
+  if (idx < 0) return;
+
   const dataUrl = c.toDataURL("image/png");
-  frames[assigned] = dataUrl;
-  saveDraft(dataUrl);
-  window.V12.addLog("draft_updated", { frame: assigned + 1, bytes: dataUrl.length });
+  frames[idx] = dataUrl;
+  saveDraft(idx, dataUrl);
+  window.V12.addLog("draft_updated", { frame: idx + 1, bytes: dataUrl.length, mode: isPrivateMode ? "private" : "public" });
 }
 
 function drawOnion(prevIdx){
@@ -122,26 +127,42 @@ function drawOnion(prevIdx){
 
 function drawFrame(i){
   ctx.clearRect(0,0,c.width,c.height);
-  // onion skin: previous frame
-  if (i > 0) drawOnion(i-1);
+  // onion skin: previous frame（public編集時だけ）
+  if (!isPrivateMode && i > 0) drawOnion(i-1);
+
   const dataUrl = frames[i];
   if (!dataUrl) return;
   const img = new Image();
   img.onload = () => {
     ctx.clearRect(0,0,c.width,c.height);
-    if (i > 0) drawOnion(i-1);
+    if (!isPrivateMode && i > 0) drawOnion(i-1);
     ctx.drawImage(img,0,0,c.width,c.height);
   };
   img.src = dataUrl;
 }
 
+function updateLabels(){
+  const shown = cur + 1;
+  viewingLabel.textContent = `${shown} / 60`;
+  frameLabel.textContent = `コマ ${shown} / 60`;
+
+  // ②：担当コマと閲覧コマが同じなら強調
+  const same = (!isPrivateMode && assigned >= 0 && cur === assigned);
+  viewingLabel.style.fontWeight = same ? "900" : "700";
+  viewingLabel.style.color = same ? "var(--text)" : "var(--muted)";
+}
+
 function setCur(i){
   cur = clamp(i, 0, 59);
-  // 1..60 表示
   const shown = cur + 1;
   viewSlider.value = String(shown);
-  frameLabel.textContent = `コマ ${shown} / 60`;
+  updateLabels();
   drawFrame(cur);
+
+  if (isPrivateMode) {
+    setStatus("プライベート編集：どのコマでも描けるよ。保存は「保存」ボタン。");
+    return;
+  }
 
   if (cur === assigned) {
     setStatus(submitted ? "提出済み。閲覧のみ。" : "担当コマです。描けます（提出は送信 or タイムアウト）。");
@@ -285,10 +306,15 @@ function tick(){
     timerLeftMs = 0;
     timerEl.textContent = "残り 00:00";
     stopTimer();
-    if (!submitted && assigned >= 0) submitFrame(true);
+    if (!submitted && !isPrivateMode && assigned >= 0) submitFrame(true);
   }
 }
 function startTimer(){
+  if (isPrivateMode) {
+    // プライベートは制限なし（④）
+    timerEl.textContent = "制限なし";
+    return;
+  }
   if (timerId) return;
   timerId = setInterval(tick, 200);
 }
@@ -298,43 +324,47 @@ function stopTimer(){
   timerId = null;
 }
 
-// --- networking (compat) ---
+// --- networking ---
 const ws = window.V12.createLoggedWebSocket();
 
-function applyJoinedPayload(p){
-  theme = p.theme || theme;
-  fps = p.fps || fps;
+function applyStateLike(d){
+  theme = d.theme || theme;
+  fps = d.fps || fps;
 
-  if (typeof p.assignedFrame === "number") assigned = p.assignedFrame;
-  if (typeof p.assigned === "number") assigned = p.assigned;
-
-  if (p.reservationToken) reservationToken = String(p.reservationToken);
-  if (p.token) reservationToken = String(p.token);
-
-  // frames が dataUrl 配列で来るサーバだけ反映（別サーバは filled:boolean[] のことがある）
-  if (Array.isArray(p.frames) && typeof p.frames[0] === "string") frames = p.frames;
-  if (p.data && Array.isArray(p.data.frames)) {
-    const fr = p.data.frames;
-    if (typeof fr[0] === "string") frames = fr;
+  if (!isPrivateMode) {
+    if (typeof d.assignedFrame === "number") assigned = d.assignedFrame;
+    if (typeof d.assigned === "number") assigned = d.assigned;
   }
 
-  // draft restore (only if not already have frame)
-  if (assigned >= 0 && !frames[assigned]) {
-    const d = loadDraft();
-    if (d && d.startsWith("data:image/png")) {
-      frames[assigned] = d;
-      window.V12.addLog("draft_restored", { frame: assigned + 1, bytes: d.length });
+  if (Array.isArray(d.frames) && typeof d.frames[0] === "string") frames = d.frames;
+
+  // draft restore
+  if (isPrivateMode) {
+    const dft = loadDraft(cur);
+    if (dft && !frames[cur]) frames[cur] = dft;
+  } else if (assigned >= 0 && !frames[assigned]) {
+    const dft = loadDraft(assigned);
+    if (dft && dft.startsWith("data:image/png")) {
+      frames[assigned] = dft;
+      window.V12.addLog("draft_restored", { frame: assigned + 1, bytes: dft.length });
     }
   }
 
   themeName.textContent = "お題：" + (theme || "-");
   roomIdLabel.textContent = roomId || "-";
-  assignedLabel.textContent = (assigned >= 0) ? `${assigned + 1} / 60` : "-";
+  if (isPrivateMode) {
+    assignedLabel.textContent = "ALL（自由）";
+    submitBtn.textContent = "保存";
+  } else {
+    assignedLabel.textContent = (assigned >= 0) ? `${assigned + 1} / 60` : "-";
+    submitBtn.textContent = "送信（提出）";
+  }
 
   addMyRoom({ roomId, theme, at: Date.now() });
 
-  setCur((assigned >= 0) ? assigned : 0);
+  setCur(isPrivateMode ? cur : ((assigned >= 0) ? assigned : 0));
   startTimer();
+  updateLabels();
 }
 
 ws.addEventListener("open", () => {
@@ -346,7 +376,7 @@ ws.addEventListener("open", () => {
   }
   ws.send(JSON.stringify({
     v:1, t:"join_room", ts:Date.now(),
-    data:{ roomId, password, pass: password, token: reservationToken, reservationToken }
+    data:{ roomId, password, pass: password, view: false, mode: isPrivateMode ? "private" : "public" }
   }));
 });
 
@@ -354,28 +384,30 @@ ws.addEventListener("message", (ev) => {
   try{
     const m = JSON.parse(ev.data);
 
-    if (m.t === "room_joined") { applyJoinedPayload(m); return; }
     if (m.t === "joined" || m.t === "room_state") {
       const d = m.data || m;
-      applyJoinedPayload(d);
+      applyStateLike(d);
       return;
     }
-
     if (m.t === "frame_committed") {
-      if (typeof m.data?.frameIndex === "number") {
-        frames[m.data.frameIndex] = m.data.dataUrl || frames[m.data.frameIndex];
-        if (m.data.frameIndex === cur) drawFrame(cur);
+      const d = m.data || m;
+      if (typeof d.frameIndex === "number" && typeof d.dataUrl === "string") {
+        frames[d.frameIndex] = d.dataUrl;
+        if (d.frameIndex === cur) drawFrame(cur);
       }
       return;
     }
-
     if (m.t === "submitted") {
-      submitted = true;
-      submitBtn.disabled = true;
-      toast.style.display = "flex";
+      submitted = !isPrivateMode; // privateは何度でも保存
+      if (!isPrivateMode) {
+        submitBtn.disabled = true;
+        toast.style.display = "flex";
+      } else {
+        setStatus("保存しました。別のコマも編集できるよ。");
+        submitBtn.disabled = false;
+      }
       return;
     }
-
     if (m.t === "error") {
       setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
       return;
@@ -385,31 +417,44 @@ ws.addEventListener("message", (ev) => {
 
 // --- submit (button or timeout) ---
 function submitFrame(isTimeout=false){
-  if (submitted) return;
-  if (assigned < 0) { setStatus("担当コマが無い…"); return; }
+  if (!roomId) return;
+  if (!isPrivateMode && submitted) return;
 
   // 送信前に最後の内部更新を確実に
   if (isEditable()) internalUpdateDraft();
 
-  const dataUrl = frames[assigned] || c.toDataURL("image/png");
-  submitted = true;
-  stopTimer();
-  setStatus("送信中…");
-  submitBtn.disabled = true;
+  const frameIndex = isPrivateMode ? cur : assigned;
+  if (frameIndex < 0) { setStatus("担当コマが無い…"); return; }
+
+  const dataUrl = frames[frameIndex] || c.toDataURL("image/png");
+
+  if (!isPrivateMode) {
+    submitted = true;
+    stopTimer();
+    setStatus("送信中…");
+    submitBtn.disabled = true;
+  } else {
+    setStatus("保存中…");
+    submitBtn.disabled = true;
+  }
 
   ws.send(JSON.stringify({
     v:1, t:"submit_frame", ts:Date.now(),
     data:{
       roomId,
-      frameIndex: assigned,
+      frameIndex,
       dataUrl,
-      pngDataUrl: dataUrl,
-      imageDataUrl: dataUrl,
-      reservationToken,
-      token: reservationToken,
+      password, // private auth
       isTimeout
     }
   }));
+
+  // ④：自分の作品に「描いた時点の状態」を保存（publicのときだけ）
+  if (!isPrivateMode) {
+    try{
+      saveWorkSnapshot({ roomId, theme, frames, myFrameIndex: frameIndex });
+    }catch(e){}
+  }
 }
 submitBtn.onclick = () => submitFrame(false);
 
@@ -417,7 +462,8 @@ submitBtn.onclick = () => submitFrame(false);
 themeName.textContent = "お題：-";
 roomIdLabel.textContent = roomId || "-";
 assignedLabel.textContent = "-";
-timerEl.textContent = "残り 03:00";
+timerEl.textContent = isPrivateMode ? "制限なし" : "残り 03:00";
 setTool("pen");
 setTab("draw");
 setCur(0);
+updateLabels();
