@@ -18,7 +18,7 @@
         <div class="chip" id="chipRoom" style="display:none;">ID -</div>
         <div class="chip" id="chipKoma">コマ -</div>
         <div class="chip"><span class="dot off" id="netDot"></span><span id="netText">通信: OFF</span></div>
-        <a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+        <a class="btn sub" id="backHome" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
       </div>
     </header>
 
@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <div class="box" style="margin-top:10px;">
+        <div class="box" style="margin-top:10px;" id="styleBox">
           <div class="mini">色 / 太さ</div>
           <div class="grid2" style="margin-top:6px;">
             <input id="color" type="color" value="#141425" />
@@ -57,22 +57,37 @@
         </div>
 
         <div class="box" style="margin-top:10px;" id="frameBox">
-          <div class="mini">コマ（プライベートだけ）</div>
+          <div class="mini">コマ</div>
           <input id="slider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
-          <div class="row" style="margin-top:10px;">
+          <div class="row" style="margin-top:10px;" id="frameButtons">
             <button class="btn sub" id="prevBtn" type="button">◀ 前</button>
             <button class="btn sub" id="nextBtn" type="button">次 ▶</button>
             <button class="btn sub" id="syncBtn" type="button">同期</button>
           </div>
         </div>
 
-        <div class="box" style="margin-top:10px;">
+        <div class="box" style="margin-top:10px;" id="playSaveBox">
           <div class="mini">見る / 保存</div>
           <div class="row" style="margin-top:6px;">
             <button class="btn ok" id="playBtn" type="button">▶ 見る</button>
             <button class="btn sub" id="stopBtn" type="button">■ 止める</button>
             <button class="btn sub" id="loopBtn" type="button">くり返し: OFF</button>
+          </div>          <div class="row" style="margin-top:10px;">
+            <button class="btn sub" id="viewBtn" type="button">コマを見る</button>
+            <button class="btn ok" id="backToEditBtn" type="button" hidden>編集へ戻る</button>
           </div>
+
+        <div class="box" style="margin-top:10px;" id="viewPanel" hidden>
+          <div class="mini">見るコマ</div>
+          <input id="viewSlider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
+          <div class="row" style="margin-top:10px;">
+            <button class="btn sub" id="viewPrevBtn" type="button">◀</button>
+            <button class="btn sub" id="viewNextBtn" type="button">▶</button>
+            <div class="btn sub" id="viewLabel" style="width:auto; padding:12px 12px; font-size:14px;">コマ -</div>
+          </div>
+        </div>
+
+
           <div class="row" style="margin-top:10px;">
             <button class="btn ok" id="saveGifBtn" type="button">GIFで保存</button>
           </div>

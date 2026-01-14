@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7b6cff" />
+  <title>プライベートで編集</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="hL">
+        <div class="hTitle">プライベートで編集</div>
+        <div class="hSub" id="srcLine">元：ID -</div>
+      </div>
+      <div class="hR">
+        <a class="btn sub" href="./gallery.html" style="width:auto; padding:10px 12px; font-size:14px;">作品へ</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel">
+        <div class="box">
+          <div class="mini">新しいID</div>
+          <input id="newId" class="input" placeholder="例：ABCD12" style="margin-top:6px; text-transform:uppercase;" />
+          <div class="mini" style="margin-top:12px;">合言葉</div>
+          <input id="newPass" class="input" placeholder="合言葉" style="margin-top:6px;" />
+          <button class="btn ok" id="go" type="button" style="margin-top:14px;">編集へ</button>
+        </div>
+
+        <div class="toast" id="toast"><div class="toastText" id="toastText"></div></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./config.js"></script>
+  <script src="./common.js"></script>
+  <script>
+  (function(){
+    const {$, makeToast, loadPendingAction, clearPendingAction, savePendingAction} = window.Anim5S;
+    const say = makeToast();
+
+    const action = loadPendingAction();
+    if(!action || action.kind!=="fork_prepare"){
+      location.href="./gallery.html";
+      return;
+    }
+    clearPendingAction();
+
+    const srcId = String(action.srcRoomId||"").toUpperCase();
+    const srcPass = action.srcPassphrase || "";
+    $("srcLine").textContent = "元：ID " + (srcId || "-");
+
+    function cleanId(x){
+      return String(x||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,10);
+    }
+
+    $("go").addEventListener("click", ()=>{
+      const dstId = cleanId($("newId").value);
+      const pass = String($("newPass").value||"");
+      if(!dstId){ say("新ID"); return; }
+      if(pass.length<1){ say("合言葉"); return; }
+
+      savePendingAction({
+        kind:"fork_private",
+        srcRoomId: srcId,
+        srcPassphrase: srcPass,
+        dstRoomId: dstId,
+        passphrase: pass,
+        from: "gallery"
+      });
+      location.href="./editor.html";
+    });
+  })();
+  </script>
+</body>
+</html>
