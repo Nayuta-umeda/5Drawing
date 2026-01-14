@@ -33,33 +33,39 @@
   }
 
   function getWsBase(){
-    // UI入力は無し。config.js が基本。
-    const stored = (localStorage.getItem(CFG.WS_BASE_KEY) || "").trim();
-    if(stored) return stored;
-
-    const def = (DEFAULT_SERVER_BASE || "").trim();
+    // まず config.js の既定値を優先（古い保存URLで詰まるのを防ぐ）
+    const def = (DEFAULT_SERVER_BASE || "").trim().replace(/\/+$/,"");
     if(def && def !== "https://YOUR-SERVER-URL"){
-      localStorage.setItem(CFG.WS_BASE_KEY, def);
+      try{ localStorage.setItem(CFG.WS_BASE_KEY, def); }catch{}
       return def;
     }
+    // 既定値が無い場合のみ保存値を使う
+    try{
+      const stored = (localStorage.getItem(CFG.WS_BASE_KEY) || "").trim().replace(/\/+$/,"");
+      if(stored) return stored;
+    }catch{}
     return "";
   }
 
   function wsUrlFromBase(base){
     const raw = String(base||"").trim();
     if(!raw) return "";
-    if(/^wss?:\/\//i.test(raw)){
-      return raw.replace(/\/$/,"");
-    }
     try{
       const u = new URL(raw);
-      const proto = (u.protocol === "https:") ? "wss:" : "ws:";
-      const path = u.pathname.replace(/\/$/,"");
-      u.protocol = proto;
-      u.pathname = (path === "" || path === "/") ? "/ws" : (path.endsWith("/ws") ? path : (path + "/ws"));
+      // https → wss / http → ws / ws,wss はそのまま
+      if(u.protocol === "https:") u.protocol = "wss:";
+      else if(u.protocol === "http:") u.protocol = "ws:";
+      // pathname に /ws を 1回だけ付ける（/ws, /ws/, /ws? などでもOKにする）
+      const p = u.pathname.replace(/\/+$/,"");
+      u.pathname = (p === "" || p === "/") ? "/ws" : (p.endsWith("/ws") ? p : (p + "/ws"));
       return u.toString();
-    }catch{
-      return "wss://" + raw.replace(/\/$/,"") + "/ws";
+    }catch(e){
+      // "anim5s-server.onrender.com" のようにプロトコル無しで来てもOK
+      const host = raw
+        .replace(/^wss?:\/\//i,"")
+        .replace(/^https?:\/\//i,"")
+        .replace(/\/+$/,"");
+      return "wss://" + host + "/ws";
     }
   }
 

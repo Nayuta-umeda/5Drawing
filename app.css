@@ -296,3 +296,10 @@ input[type="color"]{
 
 /* modal の hidden を必ず効かせる */
 .modal[hidden]{ display:none !important; }
+
+/* gallery: item の横並びをやめる（文字が縦になるのを防ぐ） */
+.page-gallery .item{ display:block; }
+.page-gallery .item > *{ width:100%; }
+
+/* バージョン表示（更新できてるか確認用） */
+.vTag{ font-size:12px; opacity:.7; margin-top:4px; }

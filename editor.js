@@ -102,12 +102,15 @@ function showEntryModal(){
 }
 
 function showDoneModal(){
-  if(!doneModal || !doneBackBtn){
-    location.href="./index.html";
-    return;
-  }
+  if(!doneModal) { location.href="./index.html"; return; }
   doneModal.hidden = false;
-  doneBackBtn.addEventListener("click", ()=>{ location.href="./index.html"; }, { once:true });
+
+  if(doneBackBtn){
+    doneBackBtn.onclick = ()=>{ location.href="./index.html"; };
+  }else{
+    // ボタンが取れないならタップで戻れる
+    doneModal.addEventListener("click", ()=>{ location.href="./index.html"; }, { once:true });
+  }
 }
 
 
@@ -153,6 +156,8 @@ const state={
   autoSubmitAt:0,
 };
 
+
+let justSubmitted = false; // 直前に送信した時だけ true
 const draftCache=new Map(); // idx->Image
 
 function resetFrames(){
@@ -712,7 +717,12 @@ async function onMsg(m){
   if(m.t==="frame_submit_ok"){
     state.submitted = true;
     say("OK");
-    // 公開（担当コマ）の場合だけ「終了」
+
+    // ここが大事：自分が“今”送信した時だけ「終了」を出す（古い通知で毎回出るのを防ぐ）
+    if(!justSubmitted) return;
+    justSubmitted = false;
+
+    // 公開（担当コマ）だけ終了
     if(state.room && state.room.canEdit==="assigned" && state.room.visibility==="public" && (state.room.flow==="create" || state.room.flow==="random")){
       showDoneModal();
     }
