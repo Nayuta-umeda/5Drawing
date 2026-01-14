@@ -3,43 +3,37 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#7b6cff" />
-  <title>5秒アニメ</title>
-  <link rel="stylesheet" href="./app.css" />
+  <title>共同5秒アニメ V12（ロビー）</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-
-  <div class="wrap">
-    <header>
-      <div class="hL">
-        <div class="hTitle">5秒アニメ</div>
-        <div class="hSub">ロビー</div>
-      </div>
-      <div class="hR"></div>
-    </header>
-    <main>
-
-      <section class="card pad">
-        <div class="row">
-          <div id="menuGrid" class="menuGrid">
-  <a class="btn ok" href="./create.html">部屋を作る</a>
-  <a class="btn ok" href="./random.html">誰かの続きを描く</a>
-  <a class="btn sub" href="./private.html">合言葉で入る</a>
-  <a class="btn sub" href="./gallery.html">自分の作品</a>
-</div>
+  <div class="container">
+    <div class="h1">ANIM 5s / V12</div>
+    <div class="card" style="padding:14px;">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-weight:900;">ロビー</div>
+          <div class="small muted">ページ読み込みで接続開始（config.js の既定URL）</div>
         </div>
-      </section>
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div></main>
+        <div class="badge" id="netBadge">WS: …</div>
+      </div>
+      <hr class="sep" />
+      <div class="grid2">
+        <button class="btn btnAccent" id="btnCreate">部屋を作る</button>
+        <button class="btn" id="btnJoinRandom">誰かの続きを描く</button>
+        <button class="btn" id="btnJoinPrivate">合言葉で入る</button>
+        <button class="btn btnOk" id="btnGallery">自分の作品</button>
+      </div>
+      <hr class="sep" />
+      <div class="small muted">
+        反映確認の近道：<a href="./config.js" target="_blank" rel="noopener">config.js を直開き</a> /
+        <a href="./ws-test.html" target="_blank" rel="noopener">ws-test.html</a>
+      </div>
+    </div>
   </div>
 
-<script src="./config.js"></script>
-<script src="./common.js"></script>
-<script>
-  (function(){
-    const say = window.Anim5S.makeToast();
-    if(!window.Anim5S.getWsBase()) say("config.js のURLを入れて");
-  })();
-</script>
-
+  <script src="./config.js"></script>
+  <script src="./common.js"></script>
+  <script type="module" src="./index.js"></script>
 </body>
 </html>

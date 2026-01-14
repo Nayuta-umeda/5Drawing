@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>部屋を作る - V12</title>
+  <title>誰かの続きを描く - V12</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -11,22 +11,19 @@
     <div class="card" style="padding:14px;">
       <div class="row" style="justify-content:space-between;">
         <div>
-          <div style="font-weight:900;">部屋を作る</div>
-          <div class="small muted">お題を入力 → ID決定 + 1枚目割当</div>
+          <div style="font-weight:900;">誰かの続きを描く</div>
+          <div class="small muted">未完成のランダムIDへ参加 + 空き最若コマ割当</div>
         </div>
         <a class="badge" href="./index.html">ロビーへ</a>
       </div>
       <hr class="sep" />
-      <input id="theme" class="input" placeholder="お題（例：歩く犬、通勤時間…）" maxlength="60" />
-      <div class="small muted">空欄だとサーバ側でランダムお題。</div>
-      <div style="height:10px;"></div>
-      <button class="btn btnAccent" id="go">作成して描く</button>
+      <button class="btn" id="go">参加して描く</button>
       <div id="msg" class="small muted" style="margin-top:10px;"></div>
     </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
-  <script type="module" src="./create.js"></script>
+  <script type="module" src="./join_random.js"></script>
 </body>
 </html>

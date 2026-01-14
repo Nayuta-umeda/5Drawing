@@ -3,144 +3,84 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#7b6cff" />
-  <title>アニメ編集</title>
-  <link rel="stylesheet" href="./app.css" />
+  <title>編集 - V12</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    #canvasWrap{ display:flex; justify-content:center; }
+    canvas{ width:min(92vw, 420px); height:min(92vw, 420px); image-rendering:pixelated;
+            border-radius:18px; border:1px solid rgba(255,255,255,.12); background:#0f1220; touch-action:none; }
+    .toolRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .toolRow > *{ flex:1; min-width:120px; }
+    #topBar{ position:sticky; top:0; z-index:10; background:rgba(11,13,16,.85); backdrop-filter:blur(8px);
+             border-radius:18px; border:1px solid rgba(255,255,255,.08); box-shadow:0 10px 30px rgba(0,0,0,.35);
+             padding:12px; }
+    .pill{ padding:8px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); }
+    #toast{ position:fixed; left:0; right:0; bottom:0; display:none; z-index:9997; padding:14px; }
+    #toast .card{ max-width:520px; margin:0 auto; padding:14px; }
+  </style>
 </head>
-<body class="page-editor">
-  <div class="wrap">
-    <header>
-      <div class="hL">
-        <div class="hTitle">アニメ編集</div><div class="vTag">v11</div>
-        <div class="hSub" id="themeLine">お題：-</div>
+<body>
+  <div class="container">
+    <div id="topBar">
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-weight:900;" id="roomTitle">編集</div>
+          <div class="small muted" id="themeTitle">お題：-</div>
+          <div class="small muted" id="assignTitle">割当：-</div>
+        </div>
+        <a class="badge" href="./index.html">ロビーへ</a>
       </div>
-      <div class="hR">
-        <div class="chip" id="chipRoom" style="display:none;">ID -</div>
-        <div class="chip" id="chipKoma">コマ -</div>
-        <div class="chip"><span class="dot off" id="netDot"></span><span id="netText">通信: OFF</span></div>
-        <a class="btn sub" id="backHome" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
+      <div style="height:10px;"></div>
+      <div class="row" style="gap:10px; align-items:center;">
+        <button class="btn" id="prev" style="max-width:120px;">◀</button>
+        <input id="slider" type="range" min="0" max="59" value="0" style="flex:1;" />
+        <button class="btn" id="next" style="max-width:120px;">▶</button>
       </div>
-    </header>
+      <div class="row" style="justify-content:space-between; margin-top:8px;">
+        <div class="small muted" id="frameLabel">0 / 59</div>
+        <div class="pill small" id="timer">残り 03:00</div>
+      </div>
+    </div>
 
-    <main class="editorMain">
-      <!-- コマ切り替え：上に固定 -->
-      <section class="card dock" id="frameBox">
-        <div class="dockRow" id="frameButtons">
-          <button class="btn sub" id="prevBtn" type="button">◀</button>
-          <input id="slider" type="range" min="0" max="59" value="0" />
-          <button class="btn sub" id="nextBtn" type="button">▶</button>
-          <div class="chip" id="frameLabel">1/60</div>
-        </div>
-      </section>
+    <div class="card" style="padding:14px;">
+      <div id="canvasWrap"><canvas id="c" width="256" height="256"></canvas></div>
+      <div style="height:10px;"></div>
 
-      <div class="stage" id="stage">
-        <canvas id="draw"></canvas>
-        <canvas id="onion" aria-hidden="true"></canvas>
-        <canvas id="play" aria-hidden="true"></canvas>
-        <div class="badge" id="badge">準備中</div>
+      <div class="toolRow">
+        <button class="btn" id="toolPen">ペン</button>
+        <button class="btn" id="toolEraser">消しゴム</button>
+        <button class="btn" id="undo">戻す</button>
+        <button class="btn" id="clear">全消し</button>
       </div>
 
-      <!-- 下：タブ -->
-      <section class="card pad ctrl" id="ctrlRoot">
-        <div class="tabs" id="tabs">
-          <button class="tabBtn on" id="tabTools" type="button">道具</button>
-          <button class="tabBtn" id="tabStyle" type="button">色</button>
-          <button class="tabBtn" id="tabView" type="button">見る/保存</button>
-        </div>
+      <div style="height:10px;"></div>
 
-        <div class="tabPanel" id="panelTools">
-          <div class="box" id="drawBox">
-            <div class="mini">道具</div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn ok" id="penBtn" type="button">ペン</button>
-              <button class="btn sub" id="eraserBtn" type="button">消す</button>
-              <button class="btn sub" id="undoBtn" type="button">戻す</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn bad" id="clearBtn" type="button">全消し</button>
-              <button class="btn sub" id="onionBtn" type="button">前</button>
-              <button class="btn ok" id="sendBtn" type="button">送信</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn sub" id="syncBtn" type="button">同期</button>
-            </div>
-          </div>
-        </div>
+      <div class="row" style="gap:10px; flex-wrap:wrap;">
+        <label class="small muted" style="min-width:110px;">色</label>
+        <input id="color" type="color" value="#ffffff" style="height:44px; width:84px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:var(--panel2);" />
+        <label class="small muted" style="min-width:110px;">太さ</label>
+        <input id="size" type="range" min="1" max="26" value="6" style="flex:1; min-width:180px;" />
+        <span class="badge" id="sizeLabel">6</span>
+      </div>
 
-        <div class="tabPanel" id="panelStyle" hidden>
-          <div class="box" id="styleBox">
-            <div class="mini">色</div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn sub" data-color="#000000" type="button">黒</button>
-              <button class="btn sub" data-color="#ff3b30" type="button">赤</button>
-              <button class="btn sub" data-color="#34c759" type="button">緑</button>
-            </div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn sub" data-color="#007aff" type="button">青</button>
-              <button class="btn sub" data-color="#ffcc00" type="button">黄</button>
-              <button class="btn sub" data-color="#af52de" type="button">紫</button>
-            </div>
-            <div class="mini" style="margin-top:14px;">太さ: <span id="w">6</span></div>
-            <input id="size" type="range" min="1" max="40" value="6" />
-          </div>
-        </div>
+      <div style="height:12px;"></div>
 
-        <div class="tabPanel" id="panelView" hidden>
-          <div class="box" id="playSaveBox">
-            <div class="mini">見る</div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn sub" id="playBtn" type="button">再生</button>
-              <button class="btn sub" id="stopBtn" type="button">止める</button>
-              <button class="btn sub" id="loopBtn" type="button">ループ:OFF</button>
-            </div>
-
-            <div class="row" style="margin-top:10px;">
-              <button class="btn sub" id="viewBtn" type="button">コマを見る</button>
-              <button class="btn ok" id="backToEditBtn" type="button" hidden>編集へ</button>
-            </div>
-
-            <div class="box" style="margin-top:10px;" id="viewPanel" hidden>
-              <div class="mini">見るコマ</div>
-              <input id="viewSlider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
-              <div class="row" style="margin-top:10px;">
-                <button class="btn sub" id="viewPrevBtn" type="button">◀</button>
-                <button class="btn sub" id="viewNextBtn" type="button">▶</button>
-                <div class="chip" id="viewLabel">コマ -</div>
-              </div>
-            </div>
-
-            <div class="mini" style="margin-top:14px;">保存</div>
-            <div class="row" style="margin-top:10px;">
-              <button class="btn ok" id="saveGifBtn" type="button">GIF</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="toast" id="toast"><div class="toastText" id="toastText"></div></div>
-    </main>
-  </div>
-
-  <!-- 入室表示 -->
-  <div class="modal" id="entryModal" hidden>
-    <div class="modalCard">
-      <div class="modalBig" id="entryText">お題：-</div>
-      <div class="modalSub">タップで閉じる</div>
+      <button class="btn btnOk" id="submit">送信（提出）</button>
+      <div class="small muted" id="status" style="margin-top:10px;">指を離しただけでは提出されません。提出はこのボタン or タイムアウト。</div>
     </div>
   </div>
 
-  <!-- 送信完了 -->
-  <div class="modal" id="doneModal" hidden>
-    <div class="modalCard">
-      <div class="modalBig">終了！送信しました！</div>
-      <div class="modalActions">
-        <button class="btn ok" id="doneBackBtn" type="button">ロビーに戻る</button>
-      </div>
+  <div id="toast">
+    <div class="card">
+      <div style="font-weight:900; font-size:18px;">終了！送信しました！</div>
+      <div class="small muted" style="margin-top:6px;">ロビーに戻って次のアニメも描けるよ。</div>
+      <div style="height:10px;"></div>
+      <a class="btn btnAccent" href="./index.html" style="display:block; text-align:center; line-height:1.2; padding-top:18px; padding-bottom:18px;">ロビーに戻る</a>
     </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
-  <script src="./editor.js"></script>
+  <script type="module" src="./editor.js"></script>
 </body>
 </html>

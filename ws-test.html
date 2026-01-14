@@ -1,47 +1,50 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>WS TEST</title>
-  <style>
-    body{font-family:system-ui;margin:16px;background:#fff;color:#111}
-    pre{background:#111;color:#0f0;padding:12px;border-radius:12px;white-space:pre-wrap}
-    input,button{font-size:16px;padding:10px;border-radius:12px;border:1px solid #ccc}
-    button{margin-left:6px}
-    code{background:#f2f2f2;padding:2px 6px;border-radius:8px}
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ws-test - V12</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <h2>WebSocket 接続テスト</h2>
-  <p>base は <code>https://anim5s-server.onrender.com</code> の形で入れる（<b>/ws は入れない</b>）。</p>
+  <div class="container">
+    <div class="card" style="padding:14px;">
+      <div style="font-weight:900;">ws-test</div>
+      <div class="small muted">wss://…/ws の OPEN 確認用</div>
+      <hr class="sep" />
+      <div class="small muted">base:</div>
+      <input id="base" class="input" />
+      <div style="height:10px;"></div>
+      <button class="btn btnAccent" id="go">接続テスト</button>
+      <hr class="sep" />
+      <div class="badge" id="st">-</div>
+      <pre id="log" class="card" style="padding:12px; margin-top:10px; background:#0f1220; border-radius:14px; overflow:auto; max-height:50vh;"></pre>
+    </div>
+  </div>
 
-  <input id="base" style="width:72%" placeholder="https://anim5s-server.onrender.com" value="https://anim5s-server.onrender.com">
-  <button id="go">接続</button>
-
-  <pre id="log">log...</pre>
-
+  <script src="./config.js"></script>
+  <script src="./common.js"></script>
   <script>
-    const log = (s)=>{ document.getElementById('log').textContent += "\n" + s; };
-    document.getElementById('go').onclick = ()=>{
-      const base = document.getElementById('base').value.trim().replace(/\/+$/,'');
-      if(!base){ log("base を入れて"); return; }
+    window.V12.ensureLogUi();
+    const baseEl = document.getElementById("base");
+    const st = document.getElementById("st");
+    const log = document.getElementById("log");
+    baseEl.value = window.V12.getWsBase();
 
-      const u = new URL(base);
-      u.protocol = (u.protocol === "https:") ? "wss:" : "ws:";
-      u.pathname = "/ws";
-      const wsUrl = u.toString();
+    function push(s){ log.textContent += s + "\n"; }
 
-      log("WS URL = " + wsUrl);
-      try{
-        const ws = new WebSocket(wsUrl);
-        ws.onopen = ()=> log("✅ open");
-        ws.onmessage = (e)=> log("📩 msg: " + e.data);
-        ws.onerror = ()=> log("❌ error（詳細はブラウザ側）");
-        ws.onclose = (e)=> log(`🔚 close code=${e.code} reason=${e.reason||"(none)"}`);
-      }catch(err){
-        log("例外: " + err.message);
-      }
+    document.getElementById("go").onclick = () => {
+      log.textContent = "";
+      const base = baseEl.value.trim();
+      const wsUrl = window.V12.wsUrlFromBase(base);
+      push("base = " + base);
+      push("wsUrl = " + wsUrl);
+      st.textContent = "CONNECTING...";
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => { st.textContent="OPEN"; push("OPEN"); ws.send(JSON.stringify({v:1,t:"hello",ts:Date.now(),data:{}})); };
+      ws.onmessage = (ev) => push("RECV: " + ev.data);
+      ws.onerror = () => { st.textContent="ERROR"; push("ERROR"); };
+      ws.onclose = (ev) => { st.textContent="CLOSE"; push("CLOSE " + ev.code + " " + ev.reason); };
     };
   </script>
 </body>

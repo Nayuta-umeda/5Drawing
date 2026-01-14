@@ -3,142 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#7b6cff" />
-  <title>自分の作品 <span class="vTag">v11</span></title>
-  <link rel="stylesheet" href="./app.css" />
+  <title>自分の作品 - V12</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-<body class="page-gallery">
-  <div class="wrap">
-    <header>
-      <div class="hL">
-        <div class="hTitle">自分の作品 <span class="vTag">v11</span></div>
-        <div class="hSub">この端末の履歴</div>
-      </div>
-      <div class="hR">
-        <a class="btn sub" href="./index.html" style="width:auto; padding:10px 12px; font-size:14px;">ロビー</a>
-      </div>
-    </header>
-
-    <main class="main galleryMain">
-      <section class="card pad galleryCard">
-        <div class="box" style="height:100%; display:flex; flex-direction:column;">
-          <div class="row" style="justify-content:space-between; align-items:center;">
-            <div class="mini">一覧</div>
-            <div class="row" style="gap:8px; width:auto;">
-              <button class="btn sub" id="prevPage" type="button" style="width:auto; padding:10px 12px; font-size:14px;">◀</button>
-              <div class="chip" id="pageLabel">1/1</div>
-              <button class="btn sub" id="nextPage" type="button" style="width:auto; padding:10px 12px; font-size:14px;">▶</button>
-            </div>
-          </div>
-
-          <div class="list" id="list" style="margin-top:10px; flex:1; display:flex; flex-direction:column; gap:10px;"></div>
+<body>
+  <div class="container">
+    <div class="card" style="padding:14px;">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-weight:900;">自分の作品</div>
+          <div class="small muted">自分が関わったアニメID一覧</div>
         </div>
-      </section>
-
-      <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
-    </main>
+        <a class="badge" href="./index.html">ロビーへ</a>
+      </div>
+      <hr class="sep" />
+      <div id="list" class="col"></div>
+      <div class="small muted">※「プライベートで編集」は新ID自動割当 + 合言葉だけ入力。</div>
+    </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
-  <script>
-(function(){
-  const {$, makeToast, loadMyRooms, savePendingAction, getWsBase} = window.Anim5S;
-  const say = makeToast();
-  if(!getWsBase()) say("config.js のURLを入れて");
-
-  const list = $("list");
-  const roomsAll = loadMyRooms();
-
-  // 新しい順
-  roomsAll.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
-
-  const perPage = 4;
-  let page = 0;
-  const pageCount = Math.max(1, Math.ceil(roomsAll.length / perPage));
-
-  function setPageLabel(){
-    $("pageLabel").textContent = `${page+1}/${pageCount}`;
-    $("prevPage").disabled = (page<=0);
-    $("nextPage").disabled = (page>=pageCount-1);
-  }
-
-  async function copyText(txt){
-    try{ await navigator.clipboard.writeText(txt); }
-    catch{
-      const t=document.createElement("textarea");
-      t.value=txt; document.body.appendChild(t);
-      t.select(); document.execCommand("copy"); t.remove();
-    }
-  }
-
-  function mkEmpty(){
-    const d=document.createElement("div");
-    d.className="item";
-    d.innerHTML='<div><div class="id">まだない</div><div class="sub">描いた作品がここに出る</div></div>';
-    list.appendChild(d);
-  }
-
-  function addRoom(r){
-    const it=document.createElement("div");
-    it.className="item";
-
-    const vis = (r.visibility==="private") ? "プライベート" : "公開";
-    const sub = `${r.theme} / ${vis}`;
-
-    it.innerHTML = `
-      <div class="gCard">
-        <div class="gText">
-          <div class="gId" style="cursor:pointer;">ID ${r.roomId}</div>
-          <div class="gSub">${sub}</div>
-        </div>
-        <div class="gBtns">
-          <button class="btn sub gBtn" type="button">現在の状態を閲覧</button>
-          <button class="btn ok gBtn" type="button">プライベートで編集</button>
-        </div>
-      </div>
-    `;
-
-    const idLine = it.querySelector(".id");
-    idLine.addEventListener("click", async ()=>{
-      await copyText(r.roomId);
-      say("コピー");
-    });
-
-    const buttons = it.querySelectorAll("button");
-    const bView = buttons[0];
-    const bFork = buttons[1];
-
-    bView.addEventListener("click", ()=>{
-      const a = { kind:"view", roomId:r.roomId, from:"gallery" };
-      if(r.visibility==="private") a.passphrase = (r.pass||"");
-      savePendingAction(a);
-      location.href = "./editor.html";
-    });
-
-    bFork.addEventListener("click", ()=>{
-      // IDは自動（fork.htmlで生成）。ここでは元情報だけ渡す
-      savePendingAction({ kind:"fork_prepare", srcRoomId:r.roomId, srcPassphrase: (r.visibility==="private" ? (r.pass||"") : "") });
-      location.href = "./fork.html";
-    });
-
-    list.appendChild(it);
-  }
-
-  function render(){
-    list.innerHTML = "";
-    if(!roomsAll.length){ mkEmpty(); setPageLabel(); return; }
-    const start = page * perPage;
-    const slice = roomsAll.slice(start, start+perPage);
-    slice.forEach(addRoom);
-    setPageLabel();
-  }
-
-  $("prevPage").addEventListener("click", ()=>{ if(page>0){ page--; render(); }});
-  $("nextPage").addEventListener("click", ()=>{ if(page<pageCount-1){ page++; render(); }});
-
-  render();
-})();
-  </script>
+  <script type="module" src="./gallery.js"></script>
 </body>
 </html>

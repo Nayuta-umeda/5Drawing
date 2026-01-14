@@ -1,0 +1,87 @@
+:root{
+  color-scheme: dark;
+  --bg:#0b0d10;
+  --panel:#141722;
+  --panel2:#0f1220;
+  --text:#e6e6eb;
+  --muted:rgba(230,230,235,.75);
+  --line:rgba(255,255,255,.08);
+  --accent:#7aa7ff;
+  --ok:#3bd671;
+  --warn:#ff5a6a;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --r:18px;
+}
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+a{ color:var(--accent); text-decoration:none; }
+.container{
+  max-width:980px;
+  margin:0 auto;
+  padding:18px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+}
+.row{ display:flex; gap:12px; align-items:center; }
+.col{ display:flex; flex-direction:column; gap:10px; }
+.h1{
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-align:center;
+  opacity:.9;
+  margin-top:8px;
+}
+.muted{ color:var(--muted); }
+.btn{
+  width:100%;
+  padding:16px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background:var(--panel2);
+  color:var(--text);
+  font-weight:800;
+  font-size:18px;
+}
+.btn:active{ transform:translateY(1px); }
+.btnAccent{ background:rgba(122,167,255,.18); border-color:rgba(122,167,255,.35); }
+.btnOk{ background:rgba(59,214,113,.18); border-color:rgba(59,214,113,.35); }
+.btnWarn{ background:rgba(255,90,106,.12); border-color:rgba(255,90,106,.35); }
+.input{
+  width:100%;
+  padding:14px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:var(--panel2);
+  color:var(--text);
+  font-size:16px;
+}
+.small{ font-size:13px; }
+.badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  font-size:12px;
+  opacity:.95;
+}
+hr.sep{ border:none; border-top:1px solid var(--line); margin:10px 0; }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:560px){
+  .grid2{ grid-template-columns:1fr; }
+}
