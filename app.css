@@ -226,7 +226,7 @@ input[type="color"]{
   overflow:hidden;
   margin-top:10px;
 }
-.tabPanel[hidden]{ display:none; }
+.tabPanel[hidden]{ display:none !important; }
 
 /* modal */
 .modal{
@@ -265,3 +265,34 @@ input[type="color"]{
 /* gallery/form: keep no body scroll, use fixed main */
 .page-gallery .galleryMain, .page-form .formMain{ overflow:hidden; flex:1; display:flex; flex-direction:column; }
 .page-gallery .galleryCard, .page-form .formCard{ flex:1; overflow:hidden; }
+
+
+/* gallery */
+.gCard{ width:100%; display:flex; flex-direction:column; gap:10px; }
+.gText{ width:100%; }
+.gId{ font-weight:800; font-size:18px; letter-spacing:.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gSub{ font-size:14px; opacity:.85; margin-top:2px; line-height:1.25; word-break:normal; overflow-wrap:anywhere; }
+.gBtns{ display:flex; flex-direction:column; gap:8px; }
+.gBtn{ width:100%; padding:10px 12px; font-size:14px; border-radius:14px; }
+
+
+/* lobby 4 buttons */
+.menuGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.menuGrid a{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  aspect-ratio: 1 / 1;
+  padding: 12px;
+  font-size: 16px;
+  line-height:1.2;
+  border-radius: 18px;
+}
+
+/* modal の hidden を必ず効かせる */
+.modal[hidden]{ display:none !important; }

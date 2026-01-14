@@ -87,14 +87,15 @@
     const sub = `${r.theme} / ${vis}`;
 
     it.innerHTML = `
-      <div style="flex:1; min-width:0;">
-        <div class="id" style="cursor:pointer;">ID ${r.roomId}</div>
-        <div class="sub">${sub}</div>
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:8px; flex:0 0 auto; width:100%; margin-top:10px;">
-        <button class="btn sub" type="button" style="width:100%; padding:12px 12px; font-size:16px;">現在の状態を閲覧</button>
-        <button class="btn ok" type="button" style="width:100%; padding:12px 12px; font-size:16px;">プライベートで編集</button>
+      <div class="gCard">
+        <div class="gText">
+          <div class="gId" style="cursor:pointer;">ID ${r.roomId}</div>
+          <div class="gSub">${sub}</div>
+        </div>
+        <div class="gBtns">
+          <button class="btn sub gBtn" type="button">現在の状態を閲覧</button>
+          <button class="btn ok gBtn" type="button">プライベートで編集</button>
+        </div>
       </div>
     `;
 

@@ -107,7 +107,7 @@ function showDoneModal(){
     return;
   }
   doneModal.hidden = false;
-  doneBackBtn.onclick = ()=>{ location.href="./index.html"; };
+  doneBackBtn.addEventListener("click", ()=>{ location.href="./index.html"; }, { once:true });
 }
 
 
