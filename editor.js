@@ -25,6 +25,37 @@ function setNet(ok, msg){
   netText.textContent = msg || (ok ? "通信: ON" : "通信: OFF");
 }
 
+
+// ===== 画面モード（見るだけ） =====
+function applyViewOnlyUI(isView){
+  const drawBox = $("drawBox");
+  const styleBox = $("styleBox");
+  const playSaveBox = $("playSaveBox");
+  const frameButtons = $("frameButtons");
+  const viewBtn = $("viewBtn");
+  const viewPanel = $("viewPanel");
+  const backToEditBtn = $("backToEditBtn");
+
+  if(drawBox) drawBox.hidden = !!isView;
+  if(styleBox) styleBox.hidden = !!isView;
+  if(playSaveBox) playSaveBox.hidden = !!isView;
+  if(frameButtons) frameButtons.hidden = !!isView;
+  if(viewBtn) viewBtn.hidden = true;
+  if(viewPanel) viewPanel.hidden = true;
+  if(backToEditBtn) backToEditBtn.hidden = true;
+
+  const bh = $("backHome");
+  if(bh){
+    if(isView && state.entryFrom==="gallery"){
+      bh.href = "./gallery.html";
+      bh.textContent = "作品へ";
+    }else{
+      bh.href = "./index.html";
+      bh.textContent = "ロビー";
+    }
+  }
+}
+
 // ===== Canvas =====
 const W=CFG.W, H=CFG.H, FRAME_COUNT=CFG.FRAME_COUNT, FPS=CFG.FPS;
 const cDraw=$("draw"), cOnion=$("onion"), cPlay=$("play");
@@ -60,6 +91,10 @@ const state={
   playFrame:0,
   dirty:false,
   submitted:false,
+  entryFrom:"",
+
+  viewMode:false,
+  viewFrame:0,
   autoSubmitAt:0,
 };
 
@@ -76,6 +111,8 @@ function resetFrames(){
   state.dirty=false;
   state.submitted=false;
   state.autoSubmitAt=0;
+  state.viewMode=false;
+  state.viewFrame=0;
   fillWhite(ctx); octx.clearRect(0,0,W,H); fillWhite(pctx);
   renderKoma();
 }
@@ -146,7 +183,12 @@ function drawFrameToMain(idx){
   const img=getBestImage(idx);
   if(img) ctx.drawImage(img,0,0,W,H);
   state.dirty=false;
-  renderOnion();
+  if(state.room && state.room.canEdit==="view"){ state.onion=false; }
+    renderOnion();
+    if(state.viewMode && frameIndex===state.viewFrame){
+      drawPlayFrame(state.viewFrame);
+    }
+
   renderKoma();
 }
 
@@ -202,6 +244,7 @@ function setTool(t){
   $("eraserBtn").className = "btn " + (t==="erase"?"ok":"sub");
 }
 function canEditNow(){
+  if(state.viewMode) return false;
   const r=state.room;
   if(!r) return false;
   if(r.canEdit==="view") return false;
@@ -313,7 +356,7 @@ $("onionBtn").addEventListener("click",()=>{
 });
 
 // ② 提出はここだけ（送信ボタン）
-$("sendBtn").addEventListener("click",()=>submitCurrentFrame(false));
+$("sendBtn").addEventListener("click",()=>{ if(state.viewMode) return; submitCurrentFrame(false); });
 
 // ===== コマ操作（プライベートだけ） =====
 const slider=$("slider");
@@ -375,12 +418,71 @@ function stopPlayback(){
   stage.classList.remove("preview");
   drawFrameToMain(state.currentFrame);
 }
-$("playBtn").addEventListener("click",()=>startPlayback());
+$("playBtn").addEventListener("click",()=>{ if(state.viewMode) return; startPlayback(); });
 $("stopBtn").addEventListener("click",()=>stopPlayback());
 $("loopBtn").addEventListener("click",()=>{
   state.loop=!state.loop;
   $("loopBtn").textContent= state.loop ? "くり返し: ON" : "くり返し: OFF";
 });
+
+// ===== 見る（全コマ閲覧） =====
+const viewPanel = $("viewPanel");
+const viewSlider = $("viewSlider");
+const viewLabel = $("viewLabel");
+const viewBtn = $("viewBtn");
+const backToEditBtn = $("backToEditBtn");
+
+function renderViewLabel(){
+  const n = state.viewFrame + 1;
+  if(viewLabel) viewLabel.textContent = `コマ ${n} / ${FRAME_COUNT}`;
+}
+function enterView(frameIndex){
+  if(!state.room) return;
+  state.viewMode = true;
+  state.viewFrame = Math.max(0, Math.min(FRAME_COUNT-1, frameIndex|0));
+  stage.classList.add("preview");
+  if(viewPanel) viewPanel.hidden = false;
+  if(backToEditBtn) backToEditBtn.hidden = false;
+  if(viewBtn) viewBtn.hidden = true;
+  if(viewSlider) viewSlider.value = String(state.viewFrame);
+  renderViewLabel();
+  drawPlayFrame(state.viewFrame);
+  badge.textContent = `見る: コマ ${state.viewFrame+1}`;
+}
+function exitView(){
+  if(!state.room) return;
+  state.viewMode = false;
+  if(viewPanel) viewPanel.hidden = true;
+  if(backToEditBtn) backToEditBtn.hidden = true;
+  if(viewBtn) viewBtn.hidden = false;
+  stage.classList.remove("preview");
+  badge.textContent = "編集中";
+  drawFrameToMain(state.currentFrame);
+}
+function stepView(d){
+  if(!state.viewMode) return;
+  state.viewFrame = Math.max(0, Math.min(FRAME_COUNT-1, state.viewFrame + d));
+  if(viewSlider) viewSlider.value = String(state.viewFrame);
+  renderViewLabel();
+  drawPlayFrame(state.viewFrame);
+  badge.textContent = `見る: コマ ${state.viewFrame+1}`;
+}
+
+if(viewBtn) viewBtn.addEventListener("click", ()=>enterView(state.currentFrame));
+if(backToEditBtn) backToEditBtn.addEventListener("click", ()=>exitView());
+if(viewSlider) viewSlider.addEventListener("input", ()=>{
+  if(!state.viewMode) return;
+  state.viewFrame = Number(viewSlider.value);
+  renderViewLabel();
+  drawPlayFrame(state.viewFrame);
+  badge.textContent = `見る: コマ ${state.viewFrame+1}`;
+});
+const viewPrevBtn = $("viewPrevBtn");
+const viewNextBtn = $("viewNextBtn");
+if(viewPrevBtn) viewPrevBtn.addEventListener("click", ()=>stepView(-1));
+if(viewNextBtn) viewNextBtn.addEventListener("click", ()=>stepView(+1));
+
+
 
 // GIF保存
 $("saveGifBtn").addEventListener("click", async ()=>{
@@ -539,8 +641,8 @@ async function onMsg(m){
   if(m.t==="frame_submit_ok"){
     state.submitted = true;
     say("OK");
-    // create/random はロビーへ戻す（流れが簡単）
-    if(state.room && (state.room.flow==="create" || state.room.flow==="random")){
+    // 公開（担当コマ）の場合だけロビーへ戻す（プライベートは戻らない）
+    if(state.room && state.room.canEdit==="assigned" && state.room.visibility==="public" && (state.room.flow==="create" || state.room.flow==="random")){
       setTimeout(()=>location.href="./index.html", 450);
     }
     return;
@@ -617,6 +719,16 @@ function applyRoomJoined(m){
     state.autoSubmitAt = 0;
   }
   slider.value = String(state.currentFrame);
+  try{
+    const vs = $("viewSlider");
+    if(vs){ vs.max = String(FRAME_COUNT-1); vs.value = String(state.currentFrame); }
+    const vp = $("viewPanel"); if(vp) vp.hidden = true;
+    const vb = $("viewBtn"); if(vb) vb.hidden = false;
+    const bb = $("backToEditBtn"); if(bb) bb.hidden = true;
+    state.viewMode = false;
+    state.viewFrame = state.currentFrame;
+  }catch{}
+
 
   touchMyRoom({roomId:state.room.roomId, theme:state.room.theme, visibility:state.room.visibility, pass: state.room.pass});
   drawFrameToMain(state.currentFrame);
@@ -707,6 +819,7 @@ setInterval(()=>{
 function beginAction(){
   const action = loadPendingAction();
   clearPendingAction();
+  state.entryFrom = String((action && action.from) || "");
 
   if(!action){
     say("ロビー");
@@ -749,6 +862,17 @@ function beginAction(){
       if(action.passphrase) msg.passphrase = action.passphrase;
       sendJson(msg);
       badge.textContent="読み込み中";
+      return;
+    }
+    if(action.kind==="fork_private"){
+      sendJson({
+        t:"fork_private",
+        srcRoomId: (action.srcRoomId||"").toUpperCase(),
+        srcPassphrase: action.srcPassphrase||"",
+        dstRoomId: (action.dstRoomId||"").toUpperCase(),
+        passphrase: action.passphrase||"",
+      });
+      badge.textContent="コピー中";
       return;
     }
 
