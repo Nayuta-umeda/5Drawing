@@ -3,25 +3,44 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>部屋を作る - V12</title>
+  <title>テーマを作成</title>
   <link rel="stylesheet" href="./styles.css" />
+  <style> body{ overflow:hidden; } </style>
 </head>
 <body>
   <div class="container">
     <div class="card" style="padding:14px;">
-      <div class="row" style="justify-content:space-between;">
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
         <div>
-          <div style="font-weight:900;">部屋を作る</div>
-          <div class="small muted">お題を入力 → ID決定 + 1枚目割当</div>
+          <div class="h1">テーマを作成</div>
+          <div class="small muted" style="margin-top:6px;">公開（1コマ目） or ローカルプライベート（全コマ自由）。</div>
         </div>
         <a class="badge" href="./index.html">ロビーへ</a>
       </div>
-      <hr class="sep" />
-      <input id="theme" class="input" placeholder="お題（例：歩く犬、通勤時間…）" maxlength="60" />
-      <div class="small muted">空欄だとサーバ側でランダムお題。</div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <div class="small muted">テーマ</div>
+      <input id="theme" type="text" placeholder="例：くるま / 歩く犬 / 雪だるま" />
       <div style="height:10px;"></div>
-      <button class="btn btnAccent" id="go">作成して描く</button>
-      <div id="msg" class="small muted" style="margin-top:10px;"></div>
+
+      <div class="small muted">種類</div>
+      <div class="row" style="gap:10px; margin-top:6px;">
+        <label class="badge" style="flex:1; justify-content:center; cursor:pointer;">
+          <input type="radio" name="kind" value="public" checked style="margin-right:8px;" />
+          公開（1コマ目）
+        </label>
+        <label class="badge" style="flex:1; justify-content:center; cursor:pointer;">
+          <input type="radio" name="kind" value="private_local" style="margin-right:8px;" />
+          プライベート（ローカル）
+        </label>
+      </div>
+
+      <div style="height:12px;"></div>
+      <button class="btn btnAccent" id="go">作成して編集へ</button>
+      <div class="small muted" style="margin-top:10px; line-height:1.55;">
+        公開は「提出した瞬間」にのみサーバで部屋が生成されます。提出までは他人に反映されません。
+      </div>
     </div>
   </div>
 

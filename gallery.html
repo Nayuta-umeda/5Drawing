@@ -3,22 +3,55 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>自分の作品 - V12</title>
+  <title>自分の作品</title>
   <link rel="stylesheet" href="./styles.css" />
+  <style>
+    body{ overflow:hidden; }
+    .thumb{
+      width:64px; height:64px;
+      border-radius:14px;
+      border:1px solid rgba(29,31,42,.12);
+      background:#fff;
+      object-fit:cover;
+      image-rendering:pixelated;
+    }
+    .workRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .workInfo{ flex:1; min-width: 180px; }
+    .workBtns{ display:flex; gap:8px; flex-wrap:wrap; width:100%; margin-top:10px; }
+    .workBtns button{ flex:1; min-width: 140px; }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="card" style="padding:14px;">
-      <div class="row" style="justify-content:space-between;">
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
         <div>
-          <div style="font-weight:900;">自分の作品</div>
-          <div class="small muted">自分が関わったアニメID一覧</div>
+          <div class="h1">自分の作品</div>
+          <div class="small muted" style="margin-top:6px;">
+            公開は「更新」でサーバから現在の状態（埋まり具合）を取得してから「見る」。<br/>
+            プライベートはローカル保存のみで自由に編集できます。
+          </div>
         </div>
         <a class="badge" href="./index.html">ロビーへ</a>
       </div>
-      <hr class="sep" />
-      <div id="list" class="col"></div>
-      <div class="small muted">※「プライベートで編集」は新ID自動割当 + 合言葉だけ入力。</div>
+    </div>
+
+    <div class="card" style="padding:14px; flex:1; overflow:auto;" id="list">
+      <div class="small muted">読み込み中…</div>
+    </div>
+  </div>
+
+  <div class="toastMask" id="toastMask">
+    <div class="toast">
+      <h2 id="toastTitle">更新</h2>
+      <p id="toastText">完了</p>
+      <a class="btn btnAccent" href="javascript:void(0)" id="toastOk" style="display:block; text-align:center;">OK</a>
     </div>
   </div>
 

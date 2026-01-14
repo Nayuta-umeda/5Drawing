@@ -3,22 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>誰かの続きを描く - V12</title>
+  <title>テーマに参加（ランダム）</title>
   <link rel="stylesheet" href="./styles.css" />
+  <style> body{ overflow:hidden; } </style>
 </head>
 <body>
   <div class="container">
     <div class="card" style="padding:14px;">
-      <div class="row" style="justify-content:space-between;">
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
         <div>
-          <div style="font-weight:900;">誰かの続きを描く</div>
-          <div class="small muted">未完成のランダムIDへ参加 + 空き最若コマ割当</div>
+          <div class="h1">テーマに参加（ランダム）</div>
+          <div class="small muted" style="margin-top:6px;">公開アニメの「最若の空きコマ」を担当します。</div>
         </div>
         <a class="badge" href="./index.html">ロビーへ</a>
       </div>
-      <hr class="sep" />
-      <button class="btn" id="go">参加して描く</button>
-      <div id="msg" class="small muted" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <button class="btn btnAccent" id="start">ランダム参加する</button>
+      <div class="small muted" style="margin-top:10px; line-height:1.55;">
+        入室時に予約トークンが発行されます（期限あり）。提出時に検証されるので、同時参加でも破綻しません。
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <div class="small muted" id="status">未接続</div>
+    </div>
+  </div>
+
+  <div class="toastMask" id="toastMask">
+    <div class="toast">
+      <h2 id="toastTitle">エラー</h2>
+      <p id="toastText">参加できませんでした。</p>
+      <a class="btn btnAccent" href="./index.html" style="display:block; text-align:center;">ロビーへ戻る</a>
     </div>
   </div>
 

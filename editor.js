@@ -1,35 +1,43 @@
-import { qs, clamp, addMyRoom, saveWorkSnapshot } from "./util.js";
+import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames } from "./util.js";
+import { exportGifFromDataUrls } from "./gif.js";
 
-window.V12.ensureLogUi();
-window.V12.addLog("editor_init", { href: location.href });
+window.V15.ensureLogUi();
+window.V15.addLog("editor_init", { href: location.href });
 
-const roomId = (qs("roomId") || "").toString().toUpperCase();
-const password = (qs("password") ?? qs("pass") ?? "").toString();
-const mode = (qs("mode") || "").toString(); // "private" なら全コマ編集
-const isPrivateMode = mode === "private";
+const mode = (qs("mode") || "").toString();
+const isCreatePublic = mode === "create_public";
+const isJoinPublic = mode === "join_public";
+const isPrivateLocal = mode === "private_local";
 
+let theme = (qs("theme") || "お題").toString();
+let roomId = (qs("roomId") || "").toString().toUpperCase();
+let assigned = Number(qs("assigned") ?? -1);
+if (!Number.isFinite(assigned)) assigned = -1;
+
+const reservationToken = (qs("reservationToken") || "").toString();
+const workId = (qs("workId") || "").toString();
+
+// UI
 const themeName = document.getElementById("themeName");
 const roomIdLabel = document.getElementById("roomIdLabel");
 const assignedLabel = document.getElementById("assignedLabel");
 const viewingLabel = document.getElementById("viewingLabel");
-const timerEl = document.getElementById("timer");
 const statusEl = document.getElementById("status");
-const submitBtn = document.getElementById("submit");
-const toast = document.getElementById("toast");
+const timerEl = document.getElementById("timer");
+const primaryBtn = document.getElementById("primaryBtn");
 
-// Tabs
 const tabDraw = document.getElementById("tabDraw");
 const tabView = document.getElementById("tabView");
 const panelDraw = document.getElementById("panelDraw");
 const panelView = document.getElementById("panelView");
 
-// View controls
 const viewSlider = document.getElementById("viewSlider");
 const prevBtn = document.getElementById("prev");
 const nextBtn = document.getElementById("next");
 const frameLabel = document.getElementById("frameLabel");
+const lockHint = document.getElementById("lockHint");
+const lockOverlay = document.getElementById("lockOverlay");
 
-// Draw controls
 const toolPen = document.getElementById("toolPen");
 const toolEraser = document.getElementById("toolEraser");
 const undoBtn = document.getElementById("undo");
@@ -38,23 +46,19 @@ const sizeEl = document.getElementById("size");
 const sizeVal = document.getElementById("sizeVal");
 const paletteEl = document.getElementById("palette");
 
+const saveRow = document.getElementById("saveRow");
+const saveBtn = document.getElementById("saveBtn");
+const gifBtn = document.getElementById("gifBtn");
+
+const toastMask = document.getElementById("toastMask");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
+
 // Canvas
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 
-// State
-let frames = Array.from({ length: 60 }, () => null); // dataURL (null ok)
-let fps = 12;
-let assigned = Number(qs("assigned") ?? -1); // 0-based
-if (!Number.isFinite(assigned)) assigned = -1;
-let theme = "-";
-let cur = 0; // 0-based
-
-let submitted = false;
-let tool = "pen";
-let color = "#1f2937";
-let size = 6;
-
+// Palette
 const PALETTE = [
   { name:"INK", v:"#1f2937" },
   { name:"PINK", v:"#ffb3c7" },
@@ -65,6 +69,14 @@ const PALETTE = [
   { name:"LAVENDER", v:"#d7baff" },
   { name:"AQUA", v:"#b8f2e6" },
 ];
+
+let cur = 0;
+let tool = "pen";
+let color = PALETTE[0].v;
+let size = 6;
+
+let frames = Array.from({length:60}, ()=>null);
+let filled = Array.from({length:60}, ()=>false);
 
 // Undo
 const undoStack = [];
@@ -78,98 +90,17 @@ function snapshot(){
 function undo(){
   const img = undoStack.pop();
   if (!img) return;
-  ctx.putImageData(img, 0, 0);
-  internalUpdateDraft();
+  ctx.putImageData(img,0,0);
+  internalDraftUpdate();
 }
 
+function paintWhite(){
+  ctx.save();
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx.restore();
+}
 function setStatus(t){ statusEl.textContent = t; }
-
-function isEditable(){
-  if (submitted) return false;
-  if (isPrivateMode) return true;
-  return cur === assigned;
-}
-
-// --- internal draft autosave (per stroke end) ---
-function draftKey(frameIndex){
-  const a = isPrivateMode ? `p${frameIndex}` : (assigned >= 0 ? `a${assigned}` : "x");
-  return `anim5s_draft_v13:${roomId}:${a}`;
-}
-function saveDraft(frameIndex, dataUrl){
-  try{ sessionStorage.setItem(draftKey(frameIndex), dataUrl); }catch(e){}
-}
-function loadDraft(frameIndex){
-  try{ return sessionStorage.getItem(draftKey(frameIndex)); }catch(e){ return null; }
-}
-function internalUpdateDraft(){
-  if (!isEditable()) return;
-  const idx = isPrivateMode ? cur : assigned;
-  if (idx < 0) return;
-
-  const dataUrl = c.toDataURL("image/png");
-  frames[idx] = dataUrl;
-  saveDraft(idx, dataUrl);
-  window.V12.addLog("draft_updated", { frame: idx + 1, bytes: dataUrl.length, mode: isPrivateMode ? "private" : "public" });
-}
-
-function drawOnion(prevIdx){
-  const dataUrl = frames[prevIdx];
-  if (!dataUrl) return;
-  const img = new Image();
-  img.onload = () => {
-    ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.drawImage(img, 0,0,c.width,c.height);
-    ctx.restore();
-  };
-  img.src = dataUrl;
-}
-
-function drawFrame(i){
-  ctx.clearRect(0,0,c.width,c.height);
-  // onion skin: previous frame（public編集時だけ）
-  if (!isPrivateMode && i > 0) drawOnion(i-1);
-
-  const dataUrl = frames[i];
-  if (!dataUrl) return;
-  const img = new Image();
-  img.onload = () => {
-    ctx.clearRect(0,0,c.width,c.height);
-    if (!isPrivateMode && i > 0) drawOnion(i-1);
-    ctx.drawImage(img,0,0,c.width,c.height);
-  };
-  img.src = dataUrl;
-}
-
-function updateLabels(){
-  const shown = cur + 1;
-  viewingLabel.textContent = `${shown} / 60`;
-  frameLabel.textContent = `コマ ${shown} / 60`;
-
-  // ②：担当コマと閲覧コマが同じなら強調
-  const same = (!isPrivateMode && assigned >= 0 && cur === assigned);
-  viewingLabel.style.fontWeight = same ? "900" : "700";
-  viewingLabel.style.color = same ? "var(--text)" : "var(--muted)";
-}
-
-function setCur(i){
-  cur = clamp(i, 0, 59);
-  const shown = cur + 1;
-  viewSlider.value = String(shown);
-  updateLabels();
-  drawFrame(cur);
-
-  if (isPrivateMode) {
-    setStatus("プライベート編集：どのコマでも描けるよ。保存は「保存」ボタン。");
-    return;
-  }
-
-  if (cur === assigned) {
-    setStatus(submitted ? "提出済み。閲覧のみ。" : "担当コマです。描けます（提出は送信 or タイムアウト）。");
-  } else {
-    setStatus("担当コマ以外は閲覧のみ。");
-  }
-}
 
 function setTab(name){
   const draw = name === "draw";
@@ -177,13 +108,17 @@ function setTab(name){
   tabView.classList.toggle("active", !draw);
   panelDraw.classList.toggle("hidden", !draw);
   panelView.classList.toggle("hidden", draw);
-  // 「見る」では描画を抑制（誤タップ対策）
   c.style.pointerEvents = draw ? "auto" : "none";
 }
 tabDraw.onclick = () => setTab("draw");
 tabView.onclick = () => setTab("view");
 
-// --- palette UI ---
+function isEditable(){
+  if (isPrivateLocal) return true;
+  if (assigned < 0) return false;
+  return cur === assigned;
+}
+
 function renderPalette(){
   paletteEl.innerHTML = "";
   PALETTE.forEach((p) => {
@@ -191,67 +126,147 @@ function renderPalette(){
     b.className = "swatch" + (p.v === color ? " sel" : "");
     b.style.background = p.v;
     b.title = p.name;
-    b.onclick = () => {
-      color = p.v;
-      renderPalette();
-    };
+    b.onclick = () => { color = p.v; renderPalette(); };
     paletteEl.appendChild(b);
   });
 }
 renderPalette();
 
-// --- tool UI ---
 function setTool(t){
   tool = t;
-  toolPen.classList.toggle("on", t === "pen");
-  toolEraser.classList.toggle("on", t === "eraser");
+  toolPen.classList.toggle("on", t==="pen");
+  toolEraser.classList.toggle("on", t==="eraser");
 }
 toolPen.onclick = () => setTool("pen");
 toolEraser.onclick = () => setTool("eraser");
 
 sizeEl.value = String(size);
 sizeVal.textContent = String(size);
-sizeEl.oninput = () => {
-  size = parseInt(sizeEl.value, 10);
-  sizeVal.textContent = String(size);
-};
+sizeEl.oninput = () => { size = parseInt(sizeEl.value,10); sizeVal.textContent = String(size); };
 
 undoBtn.onclick = () => { if (isEditable()) undo(); };
 clearBtn.onclick = () => {
   if (!isEditable()) return;
   snapshot();
-  ctx.clearRect(0,0,c.width,c.height);
-  internalUpdateDraft();
+  paintWhite();
+  internalDraftUpdate();
 };
 
-// --- drawing ---
+// Draft update
+function internalDraftUpdate(){
+  if (!isEditable()) return;
+  const dataUrl = c.toDataURL("image/png");
+  frames[cur] = dataUrl;
+
+  if (isPrivateLocal) return;
+
+  try{ sessionStorage.setItem(draftKey(), dataUrl); }catch(e){}
+  window.V15.addLog("draft_updated", { frame: cur+1, bytes: dataUrl.length, mode });
+}
+function draftKey(){
+  if (isCreatePublic) return `anim5s_draft_createpub:${theme}`;
+  return `anim5s_draft_joinpub:${roomId}:${reservationToken}:${assigned}`;
+}
+function loadDraft(){
+  try{ return sessionStorage.getItem(draftKey()); }catch(e){ return null; }
+}
+
+function updateLabels(){
+  themeName.textContent = "お題：" + (theme || "-");
+  roomIdLabel.textContent = roomId || (isCreatePublic ? "(未作成)" : "-");
+  assignedLabel.textContent = isPrivateLocal ? "ALL" : ((assigned>=0)? `${assigned+1}/60` : (isCreatePublic ? "1/60" : "-"));
+  viewingLabel.textContent = `${cur+1}/60`;
+  frameLabel.textContent = `コマ ${cur+1} / 60`;
+}
+function updateOverlay(){
+  const locked = (!isPrivateLocal && assigned>=0 && cur!==assigned);
+  lockOverlay.style.display = locked ? "flex" : "none";
+}
+
+function drawFrame(i){
+  paintWhite();
+
+  // onion skin for public edit
+  if (!isPrivateLocal && i > 0 && frames[i-1]) {
+    const prev = new Image();
+    prev.onload = () => {
+      paintWhite();
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.drawImage(prev,0,0,c.width,c.height);
+      ctx.restore();
+      if (frames[i]) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img,0,0,c.width,c.height);
+        img.src = frames[i];
+      }
+    };
+    prev.src = frames[i-1];
+    return;
+  }
+
+  if (!frames[i]) return;
+  const img = new Image();
+  img.onload = () => { paintWhite(); ctx.drawImage(img,0,0,c.width,c.height); };
+  img.src = frames[i];
+}
+
+function setCur(i){
+  cur = clamp(i,0,59);
+  viewSlider.value = String(cur+1);
+  updateLabels();
+  updateOverlay();
+  drawFrame(cur);
+
+  if (!isPrivateLocal) {
+    if (cur !== assigned) {
+      lockHint.textContent = "非担当コマは閲覧のみ（薄グレー＋❌）。";
+      lockHint.style.color = "var(--muted)";
+    } else {
+      lockHint.textContent = "担当コマです。描けます（提出は送信 or タイムアウト）。";
+      lockHint.style.color = "var(--text)";
+      if (!frames[cur]) {
+        const dft = loadDraft();
+        if (dft && dft.startsWith("data:image/")) { frames[cur] = dft; drawFrame(cur); }
+      }
+    }
+    if (filled[cur] && !frames[cur]) requestFrame(cur);
+  } else {
+    lockHint.textContent = "プライベート：全コマ自由。保存/GIFは「見る」タブ。";
+    lockHint.style.color = "var(--text)";
+  }
+}
+
+viewSlider.oninput = () => setCur(parseInt(viewSlider.value,10)-1);
+prevBtn.onclick = () => setCur(cur-1);
+nextBtn.onclick = () => setCur(cur+1);
+
+// drawing
 let drawing = false;
 let last = null;
 
 function posFromEvent(ev){
-  const rect = c.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) * (c.width / rect.width);
-  const y = (ev.clientY - rect.top) * (c.height / rect.height);
-  return { x, y };
+  const r = c.getBoundingClientRect();
+  const x = (ev.clientX - r.left) * (c.width / r.width);
+  const y = (ev.clientY - r.top) * (c.height / r.height);
+  return {x,y};
 }
-
-function stroke(p0, p1){
+function stroke(p0,p1){
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.lineWidth = size;
 
-  if (tool === "eraser") {
+  if (tool === "eraser"){
     ctx.globalCompositeOperation = "destination-out";
     ctx.strokeStyle = "rgba(0,0,0,1)";
   } else {
     ctx.globalCompositeOperation = "source-over";
     ctx.strokeStyle = color;
   }
-
   ctx.beginPath();
-  ctx.moveTo(p0.x, p0.y);
-  ctx.lineTo(p1.x, p1.y);
+  ctx.moveTo(p0.x,p0.y);
+  ctx.lineTo(p1.x,p1.y);
   ctx.stroke();
   ctx.restore();
 }
@@ -263,20 +278,17 @@ function onDown(ev){
   last = posFromEvent(ev);
   snapshot();
 }
-
 function onMove(ev){
   if (!drawing || !isEditable()) return;
   const p = posFromEvent(ev);
-  if (last) stroke(last, p);
+  if (last) stroke(last,p);
   last = p;
 }
-
 function onUp(){
   if (!drawing) return;
   drawing = false;
   last = null;
-  // ✅ 手を離すたびに内部更新
-  internalUpdateDraft();
+  internalDraftUpdate();
 }
 
 c.addEventListener("pointerdown", onDown);
@@ -284,16 +296,12 @@ c.addEventListener("pointermove", onMove);
 c.addEventListener("pointerup", onUp);
 c.addEventListener("pointercancel", onUp);
 
-// --- view controls (1..60) ---
-viewSlider.oninput = () => setCur(parseInt(viewSlider.value, 10) - 1);
-prevBtn.onclick = () => setCur(cur - 1);
-nextBtn.onclick = () => setCur(cur + 1);
-
-// --- timer (3 minutes) ---
-let timerLeftMs = 3 * 60 * 1000;
+// Timer
+let timerLeftMs = (isPrivateLocal ? Infinity : 3*60*1000);
 let timerId = null;
 
 function fmt(ms){
+  if (!Number.isFinite(ms)) return "制限なし";
   const s = Math.max(0, Math.floor(ms/1000));
   const mm = String(Math.floor(s/60)).padStart(2,"0");
   const ss = String(s%60).padStart(2,"0");
@@ -302,19 +310,16 @@ function fmt(ms){
 function tick(){
   timerLeftMs -= 200;
   timerEl.textContent = "残り " + fmt(timerLeftMs);
-  if (timerLeftMs <= 0) {
+  if (timerLeftMs <= 0){
     timerLeftMs = 0;
     timerEl.textContent = "残り 00:00";
     stopTimer();
-    if (!submitted && !isPrivateMode && assigned >= 0) submitFrame(true);
+    if (!isPrivateLocal) primaryAction(true);
   }
 }
 function startTimer(){
-  if (isPrivateMode) {
-    // プライベートは制限なし（④）
-    timerEl.textContent = "制限なし";
-    return;
-  }
+  if (isPrivateLocal) { timerEl.textContent = "制限なし"; return; }
+  timerEl.textContent = "残り " + fmt(timerLeftMs);
   if (timerId) return;
   timerId = setInterval(tick, 200);
 }
@@ -324,146 +329,179 @@ function stopTimer(){
   timerId = null;
 }
 
-// --- networking ---
-const ws = window.V12.createLoggedWebSocket();
+// Network
+let ws = null;
+let connected = false;
+const pendingFrames = new Set();
 
-function applyStateLike(d){
-  theme = d.theme || theme;
-  fps = d.fps || fps;
-
-  if (!isPrivateMode) {
-    if (typeof d.assignedFrame === "number") assigned = d.assignedFrame;
-    if (typeof d.assigned === "number") assigned = d.assigned;
-  }
-
-  if (Array.isArray(d.frames) && typeof d.frames[0] === "string") frames = d.frames;
-
-  // draft restore
-  if (isPrivateMode) {
-    const dft = loadDraft(cur);
-    if (dft && !frames[cur]) frames[cur] = dft;
-  } else if (assigned >= 0 && !frames[assigned]) {
-    const dft = loadDraft(assigned);
-    if (dft && dft.startsWith("data:image/png")) {
-      frames[assigned] = dft;
-      window.V12.addLog("draft_restored", { frame: assigned + 1, bytes: dft.length });
-    }
-  }
-
-  themeName.textContent = "お題：" + (theme || "-");
-  roomIdLabel.textContent = roomId || "-";
-  if (isPrivateMode) {
-    assignedLabel.textContent = "ALL（自由）";
-    submitBtn.textContent = "保存";
-  } else {
-    assignedLabel.textContent = (assigned >= 0) ? `${assigned + 1} / 60` : "-";
-    submitBtn.textContent = "送信（提出）";
-  }
-
-  addMyRoom({ roomId, theme, at: Date.now() });
-
-  setCur(isPrivateMode ? cur : ((assigned >= 0) ? assigned : 0));
-  startTimer();
-  updateLabels();
+function requestFrame(i){
+  if (!ws || !connected) return;
+  if (pendingFrames.has(i)) return;
+  pendingFrames.add(i);
+  ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
 }
 
-ws.addEventListener("open", () => {
-  ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
-  if (!roomId) {
-    setStatus("部屋IDが無い…ロビーから入ってね");
-    submitBtn.disabled = true;
+function connectIfNeeded(){
+  if (isPrivateLocal) return;
+
+  ws = window.V15.createLoggedWebSocket();
+  ws.addEventListener("open", () => {
+    connected = true;
+    ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
+
+    if (isJoinPublic && roomId){
+      ws.send(JSON.stringify({ v:1, t:"join_room", ts:Date.now(), data:{ roomId, view:false, reservationToken } }));
+      ws.send(JSON.stringify({ v:1, t:"resync", ts:Date.now(), data:{ roomId } }));
+    }
+    setStatus("接続：OK（提出は接続時のみ）");
+  });
+
+  ws.addEventListener("close", () => {
+    connected = false;
+    setStatus("接続：切断（提出できません）");
+  });
+
+  ws.addEventListener("message", (ev) => {
+    try{
+      const m = JSON.parse(ev.data);
+      if (m.t === "room_state") {
+        const d = m.data || {};
+        if (d.theme) theme = d.theme;
+        if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+        updateLabels();
+        if (filled[0] && !frames[0]) requestFrame(0);
+        if (!isPrivateLocal && assigned>0 && filled[assigned-1] && !frames[assigned-1]) requestFrame(assigned-1);
+        if (filled[cur] && !frames[cur]) requestFrame(cur);
+        return;
+      }
+      if (m.t === "frame_data") {
+        const d = m.data || {};
+        const i = d.frameIndex;
+        if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
+          frames[i] = d.dataUrl;
+          pendingFrames.delete(i);
+          if (i === cur || i === cur-1) drawFrame(cur);
+        }
+        return;
+      }
+      if (m.t === "frame_committed") {
+        const d = m.data || {};
+        const i = d.frameIndex;
+        if (typeof i === "number" && i>=0 && i<60) {
+          filled[i] = true;
+          frames[i] = null;
+          if (i === cur || i === cur-1) requestFrame(i);
+        }
+        return;
+      }
+      if (m.t === "created_public") {
+        const d = m.data || {};
+        roomId = d.roomId;
+        theme = d.theme || theme;
+        if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+        updateLabels();
+
+        const thumb = frames[0] || c.toDataURL("image/png");
+        addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+
+        stopTimer();
+        toastTitle.textContent = "終了！";
+        toastText.textContent = "公開アニメを作成しました（1コマ目提出）。";
+        toastMask.style.display = "flex";
+        primaryBtn.disabled = true;
+        return;
+      }
+      if (m.t === "submitted") {
+        stopTimer();
+        toastTitle.textContent = "終了！";
+        toastText.textContent = "提出しました。";
+        toastMask.style.display = "flex";
+        primaryBtn.disabled = true;
+
+        const thumb = frames[0] || null;
+        if (roomId) addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+        return;
+      }
+      if (m.t === "error") setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
+    }catch(e){}
+  });
+}
+connectIfNeeded();
+
+// Primary actions
+async function savePrivate(){
+  if (isEditable()) internalDraftUpdate();
+  primaryBtn.disabled = true;
+  try{
+    await savePrivateFrames(workId, frames);
+    const thumb = frames[0] || c.toDataURL("image/png");
+    updateWorkMeta(workId, { thumb });
+    toastTitle.textContent = "保存！";
+    toastText.textContent = "プライベート作品を保存しました。";
+    toastMask.style.display = "flex";
+  }catch(e){
+    alert("保存に失敗（容量/権限）");
+  }finally{
+    primaryBtn.disabled = false;
+  }
+}
+
+async function primaryAction(isTimeout=false){
+  if (isEditable()) internalDraftUpdate();
+
+  if (isPrivateLocal){
+    await savePrivate();
     return;
   }
-  ws.send(JSON.stringify({
-    v:1, t:"join_room", ts:Date.now(),
-    data:{ roomId, password, pass: password, view: false, mode: isPrivateMode ? "private" : "public" }
-  }));
-});
 
-ws.addEventListener("message", (ev) => {
-  try{
-    const m = JSON.parse(ev.data);
-
-    if (m.t === "joined" || m.t === "room_state") {
-      const d = m.data || m;
-      applyStateLike(d);
-      return;
-    }
-    if (m.t === "frame_committed") {
-      const d = m.data || m;
-      if (typeof d.frameIndex === "number" && typeof d.dataUrl === "string") {
-        frames[d.frameIndex] = d.dataUrl;
-        if (d.frameIndex === cur) drawFrame(cur);
-      }
-      return;
-    }
-    if (m.t === "submitted") {
-      submitted = !isPrivateMode; // privateは何度でも保存
-      if (!isPrivateMode) {
-        submitBtn.disabled = true;
-        toast.style.display = "flex";
-      } else {
-        setStatus("保存しました。別のコマも編集できるよ。");
-        submitBtn.disabled = false;
-      }
-      return;
-    }
-    if (m.t === "error") {
-      setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
-      return;
-    }
-  }catch(e){}
-});
-
-// --- submit (button or timeout) ---
-function submitFrame(isTimeout=false){
-  if (!roomId) return;
-  if (!isPrivateMode && submitted) return;
-
-  // 送信前に最後の内部更新を確実に
-  if (isEditable()) internalUpdateDraft();
-
-  const frameIndex = isPrivateMode ? cur : assigned;
-  if (frameIndex < 0) { setStatus("担当コマが無い…"); return; }
-
-  const dataUrl = frames[frameIndex] || c.toDataURL("image/png");
-
-  if (!isPrivateMode) {
-    submitted = true;
-    stopTimer();
-    setStatus("送信中…");
-    submitBtn.disabled = true;
-  } else {
-    setStatus("保存中…");
-    submitBtn.disabled = true;
+  if (!ws || !connected){
+    alert("サーバに接続できません（提出不可）。");
+    return;
   }
 
-  ws.send(JSON.stringify({
-    v:1, t:"submit_frame", ts:Date.now(),
-    data:{
-      roomId,
-      frameIndex,
-      dataUrl,
-      password, // private auth
-      isTimeout
-    }
-  }));
+  primaryBtn.disabled = true;
+  setStatus("送信中…");
 
-  // ④：自分の作品に「描いた時点の状態」を保存（publicのときだけ）
-  if (!isPrivateMode) {
-    try{
-      saveWorkSnapshot({ roomId, theme, frames, myFrameIndex: frameIndex });
-    }catch(e){}
+  if (isCreatePublic){
+    const dataUrl = frames[0] || c.toDataURL("image/png");
+    ws.send(JSON.stringify({ v:1, t:"create_public_and_submit", ts:Date.now(), data:{ theme, dataUrl, isTimeout } }));
+    return;
   }
+
+  const idx = assigned;
+  const dataUrl = frames[idx] || c.toDataURL("image/png");
+  ws.send(JSON.stringify({ v:1, t:"submit_frame", ts:Date.now(), data:{ roomId, frameIndex: idx, dataUrl, reservationToken, isTimeout } }));
 }
-submitBtn.onclick = () => submitFrame(false);
 
-// boot UI
-themeName.textContent = "お題：-";
-roomIdLabel.textContent = roomId || "-";
-assignedLabel.textContent = "-";
-timerEl.textContent = isPrivateMode ? "制限なし" : "残り 03:00";
-setTool("pen");
+primaryBtn.onclick = () => primaryAction(false);
+
+saveBtn.onclick = () => savePrivate();
+gifBtn.onclick = async () => {
+  if (isEditable()) internalDraftUpdate();
+  const dataUrls = frames.map(x => x);
+  const safeTheme = (theme || "private").replace(/[\\/:*?\"<>|]/g, "_");
+  await exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs: 8, filename: `${safeTheme}.gif` });
+};
+
+// boot
+paintWhite();
+themeName.textContent = "お題：" + (theme || "-");
+if (isCreatePublic && assigned < 0) assigned = 0;
+
+primaryBtn.textContent = isPrivateLocal ? "保存" : "送信（提出）";
+saveRow.style.display = isPrivateLocal ? "flex" : "none";
+
+startTimer();
 setTab("draw");
-setCur(0);
-updateLabels();
+setCur(isPrivateLocal ? 0 : (assigned>=0 ? assigned : 0));
+
+if (isPrivateLocal){
+  ensurePrivateWorkFrames(workId).then((f) => {
+    if (Array.isArray(f) && f.length === 60){ frames = f; drawFrame(cur); }
+  });
+}
+
+if (!isPrivateLocal && assigned>=0){
+  const dft = loadDraft();
+  if (dft && dft.startsWith("data:image/")) { frames[assigned] = dft; if (cur === assigned) drawFrame(cur); }
+}

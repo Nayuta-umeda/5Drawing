@@ -3,48 +3,56 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ws-test - V12</title>
+  <title>WSテスト</title>
   <link rel="stylesheet" href="./styles.css" />
+  <style> body{ overflow:hidden; } </style>
 </head>
 <body>
   <div class="container">
     <div class="card" style="padding:14px;">
-      <div style="font-weight:900;">ws-test</div>
-      <div class="small muted">wss://…/ws の OPEN 確認用</div>
-      <hr class="sep" />
-      <div class="small muted">base:</div>
-      <input id="base" class="input" />
-      <div style="height:10px;"></div>
-      <button class="btn btnAccent" id="go">接続テスト</button>
-      <hr class="sep" />
-      <div class="badge" id="st">-</div>
-      <pre id="log" class="card" style="padding:12px; margin-top:10px; background:#0f1220; border-radius:14px; overflow:auto; max-height:50vh;"></pre>
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="h1">WSテスト</div>
+          <div class="small muted" style="margin-top:6px;">OPENできるか・/wsに繋がるかを確認。</div>
+        </div>
+        <a class="badge" href="./index.html">ロビーへ</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <button class="btn btnAccent" id="go">接続して hello</button>
+      <div class="small muted" style="margin-top:10px;" id="status">未接続</div>
+    </div>
+
+    <div class="card" style="padding:14px; flex:1; overflow:auto;">
+      <pre id="log" class="small" style="margin:0; white-space:pre-wrap; line-height:1.35;"></pre>
     </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
   <script>
-    window.V12.ensureLogUi();
-    const baseEl = document.getElementById("base");
-    const st = document.getElementById("st");
-    const log = document.getElementById("log");
-    baseEl.value = window.V12.getWsBase();
+    window.V15.ensureLogUi();
+    const go = document.getElementById('go');
+    const status = document.getElementById('status');
+    const log = document.getElementById('log');
 
-    function push(s){ log.textContent += s + "\n"; }
+    function add(s){
+      log.textContent += s + "\n";
+      log.scrollTop = log.scrollHeight;
+    }
 
-    document.getElementById("go").onclick = () => {
-      log.textContent = "";
-      const base = baseEl.value.trim();
-      const wsUrl = window.V12.wsUrlFromBase(base);
-      push("base = " + base);
-      push("wsUrl = " + wsUrl);
-      st.textContent = "CONNECTING...";
-      const ws = new WebSocket(wsUrl);
-      ws.onopen = () => { st.textContent="OPEN"; push("OPEN"); ws.send(JSON.stringify({v:1,t:"hello",ts:Date.now(),data:{}})); };
-      ws.onmessage = (ev) => push("RECV: " + ev.data);
-      ws.onerror = () => { st.textContent="ERROR"; push("ERROR"); };
-      ws.onclose = (ev) => { st.textContent="CLOSE"; push("CLOSE " + ev.code + " " + ev.reason); };
+    go.onclick = () => {
+      status.textContent = "接続中…";
+      const ws = window.V15.createLoggedWebSocket();
+      ws.addEventListener('open', () => {
+        status.textContent = "OPEN";
+        add("OPEN");
+        ws.send(JSON.stringify({v:1,t:'hello',ts:Date.now(),data:{}}));
+      });
+      ws.addEventListener('message', (ev) => add("RECV: " + ev.data));
+      ws.addEventListener('close', () => status.textContent = "CLOSE");
+      ws.addEventListener('error', () => status.textContent = "ERROR");
     };
   </script>
 </body>

@@ -3,45 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>閲覧 - V12</title>
+  <title>閲覧</title>
   <link rel="stylesheet" href="./styles.css" />
   <style>
     body{ overflow:hidden; }
     #wrap{
       height:100vh;
-      padding:8px;
       max-width:560px;
       margin:0 auto;
+      padding:8px;
       display:grid;
       grid-template-rows:auto 1fr auto;
       gap:8px;
     }
-    header.card{ padding:10px; }
-    #canvasWrap{ display:flex; justify-content:center; align-items:center; min-height:0; }
+    #canvasWrap{ display:flex; align-items:center; justify-content:center; min-height:0; }
     canvas{
       width:min(92vw, 380px);
-      height:min(92vw, 380px, calc(100vh - 320px));
+      height:min(92vw, 380px, calc(100vh - 310px));
       image-rendering:pixelated;
       border-radius:18px;
       border:1px solid rgba(29,31,42,.14);
       background:#fff;
       box-shadow:0 10px 26px rgba(20,24,35,.08);
     }
-    footer.card{ padding:10px; }
     .row2{ display:flex; gap:8px; align-items:center; }
-    .btnMini{ padding:12px 10px; border-radius:14px; border:1px solid rgba(29,31,42,.14); background:var(--panel2); font-weight:900; min-width:78px;}
+    .btnMini{
+      padding:12px 10px;
+      border-radius:14px;
+      border:1px solid rgba(29,31,42,.14);
+      background:var(--panel2);
+      font-weight:1000;
+      min-width:78px;
+    }
     #slider{ flex:1; }
     #frameLabel{ margin-top:6px; font-size:12.5px; color:var(--muted); text-align:right; }
   </style>
 </head>
 <body>
   <div id="wrap">
-    <header class="card">
+    <header class="card" style="padding:10px;">
       <div class="row" style="justify-content:space-between; align-items:flex-start;">
         <div>
-          <div style="font-weight:900;" id="title">閲覧</div>
+          <div style="font-weight:1000;" id="title">閲覧</div>
           <div class="small muted" id="sub">お題：-</div>
-          <div class="small muted" id="modeLabel">モード：ライブ</div>
+          <div class="small muted" id="net">接続：-</div>
         </div>
         <a class="badge" href="./index.html">ロビーへ</a>
       </div>
@@ -51,16 +56,13 @@
       <canvas id="c" width="256" height="256"></canvas>
     </div>
 
-    <footer class="card">
+    <footer class="card" style="padding:10px;">
       <div class="row2">
         <button class="btnMini" id="prev">◀</button>
         <input id="slider" type="range" min="1" max="60" value="1" />
         <button class="btnMini" id="next">▶</button>
       </div>
       <div id="frameLabel">コマ 1 / 60</div>
-      <div style="height:8px;"></div>
-      <button class="btn btnAccent" id="play">再生</button>
-      <button class="btn" id="stop" style="display:none;">停止</button>
     </footer>
   </div>
 

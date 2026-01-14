@@ -3,37 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>共同5秒アニメ V12（ロビー）</title>
+  <title>共同5秒アニメ - ロビー</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="container">
-    <div class="h1">ANIM 5s / V12</div>
     <div class="card" style="padding:14px;">
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <div style="font-weight:900;">ロビー</div>
-          <div class="small muted">ページ読み込みで接続開始（config.js の既定URL）</div>
-        </div>
-        <div class="badge" id="netBadge">WS: …</div>
+      <div class="h1">共同5秒アニメ</div>
+      <div class="small muted" style="margin-top:6px;">
+        1人1コマで5秒アニメ。スマホ前提 / スクロール無し / 白&淡色。
       </div>
-      <hr class="sep" />
-      <div class="grid2">
-        <button class="btn btnAccent" id="btnCreate">部屋を作る</button>
-        <button class="btn" id="btnJoinRandom">誰かの続きを描く</button>
-        <button class="btn" id="btnJoinPrivate">合言葉で入る</button>
-        <button class="btn btnOk" id="btnGallery">自分の作品</button>
+      <div style="height:10px;"></div>
+      <div class="kv">
+        <div class="k"><span>解像度</span><b>256×256</b></div>
+        <div class="k"><span>コマ数</span><b>60</b></div>
+        <div class="k"><span>fps</span><b>12</b></div>
+        <div class="k"><span>担当</span><b>1人1コマ</b></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <div class="col">
+        <button class="btn btnAccent" onclick="location.href='./create.html'">テーマを作成</button>
+        <button class="btn btnAccent" onclick="location.href='./join_random.html'">テーマに参加（ランダム）</button>
+        <button class="btn btnAccent" onclick="location.href='./gallery.html'">自分の作品</button>
       </div>
       <hr class="sep" />
       <div class="small muted">
-        反映確認の近道：<a href="./config.js" target="_blank" rel="noopener">config.js を直開き</a> /
-        <a href="./ws-test.html" target="_blank" rel="noopener">ws-test.html</a>
+        Render接続が怪しいときは <a class="badge" href="./ws-test.html">WSテスト</a> を使ってね。
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <div class="h1" style="font-size:14px;">確定仕様（2026-01-15）</div>
+      <div class="small muted" style="line-height:1.55; margin-top:6px;">
+        公開「テーマを作成」は <b>1コマ目を提出した瞬間にだけ</b> サーバに部屋が生成されます（提出まで他人に反映されません / A案）。<br/>
+        プライベート作品は <b>ローカル保存のみ</b>（サーバ保存なし）。<br/>
+        「テーマに参加」は <b>予約トークン方式</b>（競合防止、期限あり）。
       </div>
     </div>
   </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
-  <script type="module" src="./index.js"></script>
+  <script>
+    window.V15.ensureLogUi();
+    window.V15.addLog("page_load", { path: location.pathname });
+  </script>
 </body>
 </html>

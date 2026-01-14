@@ -1,45 +1,58 @@
-import { addMyRoom } from "./util.js";
+window.V15.ensureLogUi();
+window.V15.addLog("page_load", { path: location.pathname });
 
-window.V12.ensureLogUi();
-const ws = window.V12.createLoggedWebSocket();
-const msg = document.getElementById("msg");
-function setMsg(t){ msg.textContent = t; }
+const startBtn = document.getElementById("start");
+const statusEl = document.getElementById("status");
+const toastMask = document.getElementById("toastMask");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
 
-function goEditor(payload){
-  const roomId = payload.roomId;
-  const pass = payload.pass ?? payload.password ?? "";
-  const token = payload.reservationToken ?? payload.token ?? "";
-  const assignedFrame = (typeof payload.assignedFrame === "number") ? payload.assignedFrame : "";
-  addMyRoom({ roomId, theme: payload.theme || "", at: Date.now() });
-
-  const q = new URLSearchParams({
-    roomId,
-    password: String(pass || ""),
-    token: String(token || ""),
-    assigned: String(assignedFrame)
-  });
-  location.href = "./editor.html?" + q.toString();
+function showError(title, text){
+  toastTitle.textContent = title;
+  toastText.textContent = text;
+  toastMask.style.display = "flex";
 }
 
-ws.addEventListener("open", () => {
-  ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
-  setMsg("接続OK。ボタンで参加。");
-});
+startBtn.onclick = () => {
+  startBtn.disabled = true;
+  statusEl.textContent = "接続中…";
+  const ws = window.V15.createLoggedWebSocket();
 
-ws.addEventListener("message", (ev) => {
-  try{
-    const m = JSON.parse(ev.data);
-    if (m.t === "room_joined") { goEditor(m); return; }
-    if (m.t === "joined") {
-      const d = m.data || {};
-      goEditor({ roomId: d.roomId, theme: d.theme, password: d.password, assignedFrame: d.assignedFrame });
-      return;
-    }
-    if (m.t === "error") setMsg("エラー: " + (m.data?.message || m.message || "unknown"));
-  }catch(e){}
-});
+  const timeout = setTimeout(() => {
+    showError("接続タイムアウト", "サーバに繋がりませんでした（Render停止/デプロイ失敗の可能性）。");
+    try{ ws.close(); }catch(e){}
+  }, 9000);
 
-document.getElementById("go").onclick = () => {
-  setMsg("探し中…");
-  ws.send(JSON.stringify({ v:1, t:"join_random", ts:Date.now(), data:{} }));
+  ws.addEventListener("open", () => {
+    ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
+    ws.send(JSON.stringify({ v:1, t:"join_random", ts:Date.now(), data:{} }));
+  });
+
+  ws.addEventListener("message", (ev) => {
+    try{
+      const m = JSON.parse(ev.data);
+      if (m.t === "room_joined") {
+        clearTimeout(timeout);
+        const d = m.data || {};
+        statusEl.textContent = "入室OK。編集へ移動…";
+        const q = new URLSearchParams({
+          mode:"join_public",
+          roomId: d.roomId,
+          theme: d.theme || "お題",
+          assigned: String(d.assignedFrame ?? -1),
+          reservationToken: d.reservationToken || "",
+          reservationExpiresAt: String(d.reservationExpiresAt || 0)
+        });
+        try{ ws.close(); }catch(e){}
+        location.href = "./editor.html?" + q.toString();
+      }
+      if (m.t === "error") {
+        clearTimeout(timeout);
+        showError("エラー", m.data?.message || m.message || "unknown");
+        try{ ws.close(); }catch(e){}
+      }
+    }catch(e){}
+  });
+
+  ws.addEventListener("close", () => startBtn.disabled = false);
 };
