@@ -84,9 +84,11 @@ ws.addEventListener("message", (ev) => {
   try{
     const m = JSON.parse(ev.data);
     if (m.t === "room_state") {
-      sub.textContent = "お題：" + (m.data.theme || "-");
-      fps = m.data.fps || 12;
-      frames = m.data.frames || frames;
+      const d = m.data || m;
+      sub.textContent = "お題：" + (d.theme || "-");
+      fps = d.fps || 12;
+      // frames が来るサーバだけ反映
+      if (Array.isArray(d.frames) && typeof d.frames[0] === "string") frames = d.frames;
       setCur(cur);
     }
   }catch(e){}

@@ -4,7 +4,10 @@ window.V12.ensureLogUi();
 window.V12.addLog("editor_init", { href: location.href });
 
 const roomId = qs("roomId") || "";
-const password = qs("password") || "";
+// 互換: password / pass 両対応
+const password = (qs("password") ?? qs("pass") ?? "").toString();
+// 互換: 予約トークン（サーバによって必要）
+let reservationToken = (qs("token") ?? qs("reservationToken") ?? "").toString();
 
 const roomTitle = document.getElementById("roomTitle");
 const themeTitle = document.getElementById("themeTitle");
@@ -22,7 +25,8 @@ const ctx = c.getContext("2d");
 
 let frames = Array.from({length:60}, () => null);
 let fps = 12;
-let assigned = -1;
+let assigned = Number(qs("assigned") ?? -1);
+if (!Number.isFinite(assigned)) assigned = -1;
 let theme = "-";
 let cur = 0;
 
@@ -47,6 +51,7 @@ function undo(){
   ctx.putImageData(img, 0, 0);
 }
 
+let submitted = false;
 function isEditable(){
   return cur === assigned && !submitted;
 }
@@ -74,7 +79,6 @@ function drawFrame(i){
   if (!dataUrl) return;
   const img = new Image();
   img.onload = () => {
-    // redraw (keep onion)
     ctx.clearRect(0,0,c.width,c.height);
     if (i > 0) drawOnion(i-1);
     ctx.drawImage(img,0,0,c.width,c.height);
@@ -169,9 +173,8 @@ c.addEventListener("pointercancel", onUp);
 
 roomTitle.textContent = roomId ? `編集（${roomId}）` : "編集";
 themeTitle.textContent = "お題：-";
-assignTitle.textContent = "割当：-";
+assignTitle.textContent = assigned >= 0 ? `割当：${assigned}コマ目` : "割当：-";
 
-let submitted = false;
 let timerLeftMs = 3 * 60 * 1000;
 let timerId = null;
 function fmt(ms){
@@ -187,7 +190,6 @@ function tick(){
     timerLeftMs = 0;
     timerEl.textContent = "残り 00:00";
     stopTimer();
-    // timeout submit
     if (!submitted && assigned >= 0) submitFrame(true);
   }
 }
@@ -206,43 +208,82 @@ function canvasToDataUrl(){
 }
 
 const ws = window.V12.createLoggedWebSocket();
+
+function applyJoinedPayload(p){
+  theme = p.theme || theme;
+  fps = p.fps || fps;
+
+  // 互換: assignedFrame / assigned どちらでも
+  if (typeof p.assignedFrame === "number") assigned = p.assignedFrame;
+  if (typeof p.assigned === "number") assigned = p.assigned;
+
+  // 互換: reservationToken / token
+  if (p.reservationToken) reservationToken = String(p.reservationToken);
+  if (p.token) reservationToken = String(p.token);
+
+  // 互換: frames が dataUrl 配列で来る場合だけ反映（別サーバは filled:boolean[] のことがある）
+  if (Array.isArray(p.frames) && typeof p.frames[0] === "string") {
+    frames = p.frames;
+  }
+  if (p.data && Array.isArray(p.data.frames)) {
+    const fr = p.data.frames;
+    if (typeof fr[0] === "string") frames = fr;
+  }
+
+  themeTitle.textContent = "お題：" + (theme || "-");
+  assignTitle.textContent = assigned >= 0 ? `割当：${assigned}コマ目` : "割当：-";
+  addMyRoom({ roomId, theme, at: Date.now() });
+
+  if (assigned >= 0) setCur(assigned);
+  else setCur(0);
+
+  startTimer();
+}
+
 ws.addEventListener("open", () => {
   ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
   if (!roomId) {
     setStatus("部屋IDが無い…ロビーから入ってね");
     return;
   }
-  ws.send(JSON.stringify({ v:1, t:"join_room", ts:Date.now(), data:{ roomId, password } }));
+  ws.send(JSON.stringify({
+    v:1, t:"join_room", ts:Date.now(),
+    data:{ roomId, password, pass: password, token: reservationToken, reservationToken }
+  }));
 });
 
 ws.addEventListener("message", (ev) => {
   try{
     const m = JSON.parse(ev.data);
-    if (m.t === "joined" || m.t === "room_state") {
-      const d = m.data;
-      theme = d.theme || "-";
-      fps = d.fps || 12;
-      frames = d.frames || frames;
-      assigned = (typeof d.assignedFrame === "number") ? d.assignedFrame : assigned;
 
-      themeTitle.textContent = "お題：" + theme;
-      assignTitle.textContent = assigned >= 0 ? `割当：${assigned}コマ目` : "割当：-";
-      addMyRoom({ roomId, theme, at: Date.now() });
-
-      if (assigned >= 0) setCur(assigned);
-      else setCur(0);
-
-      startTimer();
+    if (m.t === "room_joined") {
+      applyJoinedPayload(m);
+      return;
     }
+
+    if (m.t === "joined" || m.t === "room_state") {
+      const d = m.data || m;
+      applyJoinedPayload(d);
+      return;
+    }
+
     if (m.t === "frame_committed") {
-      // update frames
       if (typeof m.data?.frameIndex === "number") {
         frames[m.data.frameIndex] = m.data.dataUrl || frames[m.data.frameIndex];
         if (m.data.frameIndex === cur) drawFrame(cur);
       }
+      return;
     }
+
+    if (m.t === "submitted") {
+      setStatus("送信完了！");
+      toast.style.display = "block";
+      return;
+    }
+
     if (m.t === "error") {
-      setStatus("エラー: " + (m.data?.message || "unknown"));
+      setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
+      return;
     }
   }catch(e){}
 });
@@ -255,20 +296,24 @@ function submitFrame(isTimeout=false){
   submitted = true;
   stopTimer();
   setStatus("送信中…");
-  ws.send(JSON.stringify({ v:1, t:"submit_frame", ts:Date.now(), data:{ roomId, frameIndex: assigned, dataUrl, isTimeout } }));
+
+  // サーバ差分吸収: 複数キーで送る
+  ws.send(JSON.stringify({
+    v:1, t:"submit_frame", ts:Date.now(),
+    data:{
+      roomId,
+      frameIndex: assigned,
+      dataUrl,
+      pngDataUrl: dataUrl,
+      imageDataUrl: dataUrl,
+      reservationToken,
+      token: reservationToken,
+      isTimeout
+    }
+  }));
 }
 
 document.getElementById("submit").onclick = () => submitFrame(false);
-
-ws.addEventListener("message", (ev) => {
-  try{
-    const m = JSON.parse(ev.data);
-    if (m.t === "submitted") {
-      setStatus("送信完了！");
-      toast.style.display = "block";
-    }
-  }catch(e){}
-});
 
 setTool("pen");
 document.getElementById("sizeLabel").textContent = String(size);
