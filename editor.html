@@ -7,7 +7,7 @@
   <title>アニメ編集</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
-<body>
+<body class="page-editor">
   <div class="wrap">
     <header>
       <div class="hL">
@@ -22,7 +22,17 @@
       </div>
     </header>
 
-    <main>
+    <main class="editorMain">
+      <!-- コマ切り替え：上に固定 -->
+      <section class="card dock" id="frameBox">
+        <div class="dockRow" id="frameButtons">
+          <button class="btn sub" id="prevBtn" type="button">◀</button>
+          <input id="slider" type="range" min="0" max="59" value="0" />
+          <button class="btn sub" id="nextBtn" type="button">▶</button>
+          <div class="chip" id="frameLabel">1/60</div>
+        </div>
+      </section>
+
       <div class="stage" id="stage">
         <canvas id="draw"></canvas>
         <canvas id="onion" aria-hidden="true"></canvas>
@@ -30,83 +40,105 @@
         <div class="badge" id="badge">準備中</div>
       </div>
 
-      <section class="card pad">
-        <div class="box">
-          <div class="mini">道具</div>
-          <div class="row" style="margin-top:6px;">
-            <button class="btn ok" id="penBtn" type="button">ペン</button>
-            <button class="btn sub" id="eraserBtn" type="button">消す</button>
-            <button class="btn sub" id="undoBtn" type="button">戻す</button>
-          </div>
-          <div class="row" style="margin-top:10px;">
-            <button class="btn bad" id="clearBtn" type="button">全消し</button>
-            <button class="btn sub" id="onionBtn" type="button">前: ON</button>
-            <button class="btn ok" id="sendBtn" type="button">送信</button>
-          </div>
+      <!-- 下：タブ -->
+      <section class="card pad ctrl" id="ctrlRoot">
+        <div class="tabs" id="tabs">
+          <button class="tabBtn on" id="tabTools" type="button">道具</button>
+          <button class="tabBtn" id="tabStyle" type="button">色</button>
+          <button class="tabBtn" id="tabView" type="button">見る/保存</button>
         </div>
 
-        <div class="box" style="margin-top:10px;" id="styleBox">
-          <div class="mini">色 / 太さ</div>
-          <div class="grid2" style="margin-top:6px;">
-            <input id="color" type="color" value="#141425" />
-            <div class="box" style="padding:10px;">
-              <div class="mini" style="margin-bottom:6px;">太さ: <span id="w">6</span></div>
-              <input id="size" type="range" min="1" max="40" value="6" />
+        <div class="tabPanel" id="panelTools">
+          <div class="box" id="drawBox">
+            <div class="mini">道具</div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn ok" id="penBtn" type="button">ペン</button>
+              <button class="btn sub" id="eraserBtn" type="button">消す</button>
+              <button class="btn sub" id="undoBtn" type="button">戻す</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn bad" id="clearBtn" type="button">全消し</button>
+              <button class="btn sub" id="onionBtn" type="button">前</button>
+              <button class="btn ok" id="sendBtn" type="button">送信</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn sub" id="syncBtn" type="button">同期</button>
             </div>
           </div>
         </div>
 
-        <div class="box" style="margin-top:10px;" id="frameBox">
-          <div class="mini">コマ</div>
-          <input id="slider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
-          <div class="row" style="margin-top:10px;" id="frameButtons">
-            <button class="btn sub" id="prevBtn" type="button">◀ 前</button>
-            <button class="btn sub" id="nextBtn" type="button">次 ▶</button>
-            <button class="btn sub" id="syncBtn" type="button">同期</button>
+        <div class="tabPanel" id="panelStyle" hidden>
+          <div class="box" id="styleBox">
+            <div class="mini">色</div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn sub" data-color="#000000" type="button">黒</button>
+              <button class="btn sub" data-color="#ff3b30" type="button">赤</button>
+              <button class="btn sub" data-color="#34c759" type="button">緑</button>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn sub" data-color="#007aff" type="button">青</button>
+              <button class="btn sub" data-color="#ffcc00" type="button">黄</button>
+              <button class="btn sub" data-color="#af52de" type="button">紫</button>
+            </div>
+            <div class="mini" style="margin-top:14px;">太さ: <span id="w">6</span></div>
+            <input id="size" type="range" min="1" max="40" value="6" />
           </div>
         </div>
 
-        <div class="box" style="margin-top:10px;" id="playSaveBox">
-          <div class="mini">見る / 保存</div>
-          <div class="row" style="margin-top:6px;">
-            <button class="btn ok" id="playBtn" type="button">▶ 見る</button>
-            <button class="btn sub" id="stopBtn" type="button">■ 止める</button>
-            <button class="btn sub" id="loopBtn" type="button">くり返し: OFF</button>
-          </div>          <div class="row" style="margin-top:10px;">
-            <button class="btn sub" id="viewBtn" type="button">コマを見る</button>
-            <button class="btn ok" id="backToEditBtn" type="button" hidden>編集へ戻る</button>
-          </div>
+        <div class="tabPanel" id="panelView" hidden>
+          <div class="box" id="playSaveBox">
+            <div class="mini">見る</div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn sub" id="playBtn" type="button">再生</button>
+              <button class="btn sub" id="stopBtn" type="button">止める</button>
+              <button class="btn sub" id="loopBtn" type="button">ループ:OFF</button>
+            </div>
 
-        <div class="box" style="margin-top:10px;" id="viewPanel" hidden>
-          <div class="mini">見るコマ</div>
-          <input id="viewSlider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
-          <div class="row" style="margin-top:10px;">
-            <button class="btn sub" id="viewPrevBtn" type="button">◀</button>
-            <button class="btn sub" id="viewNextBtn" type="button">▶</button>
-            <div class="btn sub" id="viewLabel" style="width:auto; padding:12px 12px; font-size:14px;">コマ -</div>
-          </div>
-        </div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn sub" id="viewBtn" type="button">コマを見る</button>
+              <button class="btn ok" id="backToEditBtn" type="button" hidden>編集へ</button>
+            </div>
 
+            <div class="box" style="margin-top:10px;" id="viewPanel" hidden>
+              <div class="mini">見るコマ</div>
+              <input id="viewSlider" type="range" min="0" max="59" value="0" style="margin-top:6px;" />
+              <div class="row" style="margin-top:10px;">
+                <button class="btn sub" id="viewPrevBtn" type="button">◀</button>
+                <button class="btn sub" id="viewNextBtn" type="button">▶</button>
+                <div class="chip" id="viewLabel">コマ -</div>
+              </div>
+            </div>
 
-          <div class="row" style="margin-top:10px;">
-            <button class="btn ok" id="saveGifBtn" type="button">GIFで保存</button>
-          </div>
-        </div>
-
-        <div class="box" style="margin-top:10px;">
-          <div class="mini">部屋</div>
-          <div class="row" style="margin-top:6px;">
-            <button class="btn sub" id="copyIdBtn" type="button">IDコピー</button>
-            <button class="btn bad" id="clearLocalBtn" type="button">端末の保存を消す</button>
+            <div class="mini" style="margin-top:14px;">保存</div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn ok" id="saveGifBtn" type="button">GIF</button>
+            </div>
           </div>
         </div>
       </section>
+
+      <div class="toast" id="toast"><div class="toastText" id="toastText"></div></div>
     </main>
   </div>
 
-  <div class="toast" id="toast"><div class="t" id="toastText">-</div></div>
+  <!-- 入室表示 -->
+  <div class="modal" id="entryModal" hidden>
+    <div class="modalCard">
+      <div class="modalBig" id="entryText">お題：-</div>
+      <div class="modalSub">タップで閉じる</div>
+    </div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+  <!-- 送信完了 -->
+  <div class="modal" id="doneModal" hidden>
+    <div class="modalCard">
+      <div class="modalBig">終了！送信しました！</div>
+      <div class="modalActions">
+        <button class="btn ok" id="doneBackBtn" type="button">ロビーに戻る</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./config.js"></script>
   <script src="./common.js"></script>
   <script src="./editor.js"></script>

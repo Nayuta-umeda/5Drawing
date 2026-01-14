@@ -7,7 +7,7 @@
   <title>プライベートで編集</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
-<body>
+<body class="page-form">
   <div class="wrap">
     <header>
       <div class="hL">
@@ -19,13 +19,18 @@
       </div>
     </header>
 
-    <main class="main">
-      <section class="panel">
+    <main class="main formMain">
+      <section class="card pad formCard">
         <div class="box">
-          <div class="mini">新しいID</div>
-          <input id="newId" class="input" placeholder="例：ABCD12" style="margin-top:6px; text-transform:uppercase;" />
-          <div class="mini" style="margin-top:12px;">合言葉</div>
+          <div class="mini">新しいID（自動）</div>
+          <div class="row" style="margin-top:8px; gap:10px;">
+            <div class="input" id="newIdView" style="flex:1; display:flex; align-items:center; font-weight:1000; letter-spacing:.08em; text-transform:uppercase;">-</div>
+            <button class="btn sub" id="copyBtn" type="button" style="width:auto; padding:12px 12px; font-size:14px;">コピー</button>
+          </div>
+
+          <div class="mini" style="margin-top:14px;">合言葉</div>
           <input id="newPass" class="input" placeholder="合言葉" style="margin-top:6px;" />
+
           <button class="btn ok" id="go" type="button" style="margin-top:14px;">編集へ</button>
         </div>
 
@@ -38,7 +43,7 @@
   <script src="./common.js"></script>
   <script>
   (function(){
-    const {$, makeToast, loadPendingAction, clearPendingAction, savePendingAction} = window.Anim5S;
+    const {$, makeToast, loadPendingAction, clearPendingAction, savePendingAction, CFG} = window.Anim5S;
     const say = makeToast();
 
     const action = loadPendingAction();
@@ -52,21 +57,40 @@
     const srcPass = action.srcPassphrase || "";
     $("srcLine").textContent = "元：ID " + (srcId || "-");
 
-    function cleanId(x){
-      return String(x||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,10);
+    function genId(){
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const len = (CFG && CFG.ROOM_ID_LEN) ? CFG.ROOM_ID_LEN : 7;
+      let out="";
+      for(let i=0;i<len;i++) out += chars[(Math.random()*chars.length)|0];
+      return out;
     }
 
+    const newId = genId();
+    $("newIdView").textContent = newId;
+
+    async function copyText(txt){
+      try{ await navigator.clipboard.writeText(txt); }
+      catch{
+        const t=document.createElement("textarea");
+        t.value=txt; document.body.appendChild(t);
+        t.select(); document.execCommand("copy"); t.remove();
+      }
+    }
+
+    $("copyBtn").addEventListener("click", async ()=>{
+      await copyText(newId);
+      say("コピー");
+    });
+
     $("go").addEventListener("click", ()=>{
-      const dstId = cleanId($("newId").value);
       const pass = String($("newPass").value||"");
-      if(!dstId){ say("新ID"); return; }
       if(pass.length<1){ say("合言葉"); return; }
 
       savePendingAction({
         kind:"fork_private",
         srcRoomId: srcId,
         srcPassphrase: srcPass,
-        dstRoomId: dstId,
+        dstRoomId: newId,
         passphrase: pass,
         from: "gallery"
       });

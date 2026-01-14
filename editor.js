@@ -16,6 +16,21 @@ const chipKoma=$("chipKoma");
 const badge=$("badge");
 const stage=$("stage");
 
+const frameLabel=$("frameLabel");
+
+const ctrlRoot=$("ctrlRoot");
+const tabTools=$("tabTools");
+const tabStyle=$("tabStyle");
+const tabView=$("tabView");
+const panelTools=$("panelTools");
+const panelStyle=$("panelStyle");
+const panelView=$("panelView");
+
+const entryModal=$("entryModal");
+const entryText=$("entryText");
+const doneModal=$("doneModal");
+const doneBackBtn=$("doneBackBtn");
+
 const netDot=$("netDot");
 const netText=$("netText");
 
@@ -28,20 +43,17 @@ function setNet(ok, msg){
 
 // ===== 画面モード（見るだけ） =====
 function applyViewOnlyUI(isView){
-  const drawBox = $("drawBox");
-  const styleBox = $("styleBox");
-  const playSaveBox = $("playSaveBox");
-  const frameButtons = $("frameButtons");
-  const viewBtn = $("viewBtn");
-  const viewPanel = $("viewPanel");
-  const backToEditBtn = $("backToEditBtn");
+  // 画面の出し分け
+  if(ctrlRoot) ctrlRoot.hidden = !!isView;
 
-  if(drawBox) drawBox.hidden = !!isView;
-  if(styleBox) styleBox.hidden = !!isView;
-  if(playSaveBox) playSaveBox.hidden = !!isView;
-  if(frameButtons) frameButtons.hidden = !!isView;
-  if(viewBtn) viewBtn.hidden = true;
+  // 「見るだけ」でもコマ切り替えは使う（上のスライダー）
+  const frameButtons = $("frameButtons");
+  if(frameButtons) frameButtons.hidden = false;
+
+  // 「コマを見る」系は一旦閉じる
+  const viewPanel = $("viewPanel");
   if(viewPanel) viewPanel.hidden = true;
+  const backToEditBtn = $("backToEditBtn");
   if(backToEditBtn) backToEditBtn.hidden = true;
 
   const bh = $("backHome");
@@ -55,6 +67,49 @@ function applyViewOnlyUI(isView){
     }
   }
 }
+
+
+function setTab(which){
+  const on = (btn, yes)=>{ if(!btn) return; btn.classList.toggle("on", !!yes); };
+  on(tabTools, which==="tools");
+  on(tabStyle, which==="style");
+  on(tabView,  which==="view");
+  if(panelTools) panelTools.hidden = (which!=="tools");
+  if(panelStyle) panelStyle.hidden = (which!=="style");
+  if(panelView)  panelView.hidden  = (which!=="view");
+}
+if(tabTools) tabTools.addEventListener("click", ()=>setTab("tools"));
+if(tabStyle) tabStyle.addEventListener("click", ()=>setTab("style"));
+if(tabView)  tabView.addEventListener("click", ()=>setTab("view"));
+setTab("tools");
+
+function showEntryModal(){
+  try{
+    if(!entryModal || !entryText || !state.room) return;
+    const koma = (state.room.canEdit==="assigned")
+      ? (state.room.assignedFrame ?? state.currentFrame)
+      : (state.currentFrame ?? 0);
+    entryText.textContent = `お題：${state.room.theme}  ${koma+1}コマ目`;
+    entryModal.hidden = false;
+
+    const close = ()=>{
+      entryModal.hidden = true;
+      entryModal.removeEventListener("click", close);
+    };
+    entryModal.addEventListener("click", close);
+    setTimeout(()=>{ if(!entryModal.hidden) close(); }, 1800);
+  }catch{}
+}
+
+function showDoneModal(){
+  if(!doneModal || !doneBackBtn){
+    location.href="./index.html";
+    return;
+  }
+  doneModal.hidden = false;
+  doneBackBtn.onclick = ()=>{ location.href="./index.html"; };
+}
+
 
 // ===== Canvas =====
 const W=CFG.W, H=CFG.H, FRAME_COUNT=CFG.FRAME_COUNT, FPS=CFG.FPS;
@@ -210,20 +265,35 @@ function renderKoma(){
   const r=state.room;
   if(!r){
     chipKoma.textContent="コマ -";
+    if(frameLabel) frameLabel.textContent = "1/60";
     return;
   }
+
+  const setFrameLabel = (idx)=>{
+    if(frameLabel) frameLabel.textContent = `${(idx|0)+1}/${FRAME_COUNT}`;
+  };
+
   if(r.canEdit==="assigned"){
-    const n=(r.assignedFrame??0)+1;
-    let left = 0;
-    if(state.autoSubmitAt) left = Math.max(0, Math.ceil((state.autoSubmitAt-Date.now())/1000));
-    chipKoma.textContent = `あなたのコマ ${n}` + (left?` / ${left}s`:"");
+    const idx = (r.assignedFrame??0)|0;
+    const n = idx+1;
+
+    let leftSec = 0;
+    if(state.autoSubmitAt) leftSec = Math.max(0, Math.ceil((state.autoSubmitAt-Date.now())/1000));
+
+    const mm = String(Math.floor(leftSec/60)).padStart(1,"0");
+    const ss = String(leftSec%60).padStart(2,"0");
+
+    chipKoma.textContent = `あなたのコマ ${n}` + (leftSec?` / ${mm}:${ss}`:"");
     badge.textContent = `コマ ${n}`;
+    setFrameLabel(idx);
   }else if(r.canEdit==="view"){
     chipKoma.textContent="見るだけ";
     badge.textContent="見るだけ";
+    setFrameLabel(state.currentFrame|0);
   }else{
     chipKoma.textContent=`コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
     badge.textContent=`コマ ${state.currentFrame+1} / ${FRAME_COUNT}`;
+    setFrameLabel(state.currentFrame|0);
   }
 }
 
@@ -362,7 +432,8 @@ $("sendBtn").addEventListener("click",()=>{ if(state.viewMode) return; submitCur
 const slider=$("slider");
 function applyFrameChange(){
   if(!state.room) return;
-  if(state.room.canEdit!=="any") return;
+  if(state.room.canEdit==="assigned") return;
+  if(state.room.canEdit!=="any" && state.room.canEdit!=="view") return;
   if(state.dirty) saveLocalDraft();
   state.currentFrame=Number(slider.value);
   drawFrameToMain(state.currentFrame);
@@ -641,9 +712,9 @@ async function onMsg(m){
   if(m.t==="frame_submit_ok"){
     state.submitted = true;
     say("OK");
-    // 公開（担当コマ）の場合だけロビーへ戻す（プライベートは戻らない）
+    // 公開（担当コマ）の場合だけ「終了」
     if(state.room && state.room.canEdit==="assigned" && state.room.visibility==="public" && (state.room.flow==="create" || state.room.flow==="random")){
-      setTimeout(()=>location.href="./index.html", 450);
+      showDoneModal();
     }
     return;
   }
@@ -692,10 +763,10 @@ function applyRoomJoined(m){
   };
 
   renderRoomHeader();
-  loadLocalDraftsForRoom(state.room.roomId);
 
   const isView = state.room.canEdit==="view";
   const isAny  = state.room.canEdit==="any";
+  const isAssigned = state.room.canEdit==="assigned";
 
   // 編集可否
   $("sendBtn").disabled = isView;
@@ -704,34 +775,38 @@ function applyRoomJoined(m){
   $("undoBtn").disabled = isView;
   $("clearBtn").disabled = isView;
 
-  // コマスライダーは private(any) のときだけ
-  $("frameBox").style.display = isAny ? "" : "none";
-  slider.disabled = !isAny;
-  $("prevBtn").disabled = !isAny;
-  $("nextBtn").disabled = !isAny;
+  // コマスライダー：常に出す（担当コマは固定で無効）
+  $("frameBox").style.display = "";
+  slider.disabled = isAssigned;
+  $("prevBtn").disabled = isAssigned;
+  $("nextBtn").disabled = isAssigned;
 
-  // assigned のときは自分のコマ固定 + 60秒タイマー
-  if(state.room.canEdit==="assigned"){
+  // assigned のときは自分のコマ固定 + 3分タイマー
+  if(isAssigned){
     state.currentFrame = state.room.assignedFrame ?? 0;
     state.autoSubmitAt = Date.now() + CFG.AUTO_SUBMIT_MS;
   }else{
     state.currentFrame = 0;
     state.autoSubmitAt = 0;
   }
+
   slider.value = String(state.currentFrame);
+
   try{
     const vs = $("viewSlider");
     if(vs){ vs.max = String(FRAME_COUNT-1); vs.value = String(state.currentFrame); }
     const vp = $("viewPanel"); if(vp) vp.hidden = true;
-    const vb = $("viewBtn"); if(vb) vb.hidden = false;
     const bb = $("backToEditBtn"); if(bb) bb.hidden = true;
     state.viewMode = false;
     state.viewFrame = state.currentFrame;
   }catch{}
 
+  applyViewOnlyUI(isView);
 
   touchMyRoom({roomId:state.room.roomId, theme:state.room.theme, visibility:state.room.visibility, pass: state.room.pass});
   drawFrameToMain(state.currentFrame);
+  renderKoma();
+  showEntryModal();
   say("入った");
 }
 
@@ -804,7 +879,7 @@ async function submitCurrentFrame(isAuto){
   log("submit",{roomId, frameIndex, auto:!!isAuto});
 }
 
-// ② 60秒で自動提出（assignedだけ）
+// ② 3分で自動提出（assignedだけ）
 setInterval(()=>{
   if(!state.room) return;
   if(state.room.canEdit!=="assigned") return;
