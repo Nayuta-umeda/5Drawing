@@ -67,7 +67,8 @@ const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 
 // Onion-skin overlay (not baked into saved frames)
-const onion = document.getElementById("onion");
+const onionC = document.getElementById("onionC");
+const onionCtx = onionC ? onionC.getContext("2d") : null;
 let activeTab = "draw";
 
 
@@ -215,16 +216,38 @@ function canDrawThisFrame(){
   return false;
 }
 
+function drawDataUrlToCanvas(dataUrl, destCtx){
+  return new Promise((resolve) => {
+    try{
+      if (!destCtx || !dataUrl) return resolve(false);
+      const img = new Image();
+      img.onload = () => {
+        try{
+          destCtx.clearRect(0,0,destCtx.canvas.width,destCtx.canvas.height);
+          destCtx.drawImage(img,0,0,destCtx.canvas.width,destCtx.canvas.height);
+          resolve(true);
+        }catch(_e){ resolve(false); }
+      };
+      img.onerror = () => resolve(false);
+      img.src = dataUrl;
+    }catch(_e){ resolve(false); }
+  });
+}
+
+function clearCanvas2D(destCtx){
+  try{ destCtx.clearRect(0,0,destCtx.canvas.width,destCtx.canvas.height); }catch(_e){}
+}
+
 function updateOnion(){
   try{
-    if (!onion) return;
+    if (!onionC || !onionCtx) return;
     const show = canDrawThisFrame() && cur > 0 && !!frames[cur-1];
     if (show){
-      onion.src = frames[cur-1];
-      onion.style.display = "block";
+      drawDataUrlToCanvas(frames[cur-1], onionCtx);
+      onionC.style.display = "block";
     }else{
-      onion.style.display = "none";
-      onion.removeAttribute("src");
+      onionC.style.display = "none";
+      clearCanvas2D(onionCtx);
     }
   }catch(_e){}
 }
@@ -470,7 +493,7 @@ function connectIfNeeded(){
         addPublicWork({ roomId, theme, thumbDataUrl: thumb, myFrameIndex: 0 });
         // Save local snapshot at submit time (manual update later)
         { const dataUrl0 = (frames[0] || (()=>{ try{ return c.toDataURL("image/png"); }catch(e){ return null; } })());
-          persistPublicFrameOnly(roomId, 0, dataUrl0); }
+          persistPublicSnapshotUpTo(roomId, 0, dataUrl0); }
 
         stopTimer();
         toastTitle.textContent = "終了！";
@@ -495,7 +518,7 @@ function connectIfNeeded(){
           // (Full snapshot is updated only when the user taps "更新" in gallery.)
           let myUrl = null;
           try{ myUrl = c.toDataURL("image/png"); }catch(e){}
-          persistPublicFrameOnly(roomId, assigned, myUrl);
+          persistPublicSnapshotUpTo(roomId, assigned, myUrl);
         }
         return;
       }
@@ -600,20 +623,54 @@ if (!isPrivateLocal && assigned>=0){
   if (dft && dft.startsWith("data:image/")) { frames[assigned] = dft; if (cur === assigned) drawFrame(cur); }
 }
 
-async function persistPublicFrameOnly(roomId, frameIndex, dataUrl){
+async function waitForFrameData(i, timeoutMs){
+  const t0 = Date.now();
+  return await new Promise((resolve) => {
+    const tick = () => {
+      if (frames[i]) return resolve(true);
+      if (Date.now() - t0 >= timeoutMs) return resolve(false);
+      setTimeout(tick, 45);
+    };
+    tick();
+  });
+}
+
+async function persistPublicSnapshotUpTo(roomId, frameIndex, myDataUrl){
   try{
     if (!roomId) return;
     const idx = Number(frameIndex);
     if (!Number.isFinite(idx) || idx<0 || idx>=60) return;
-    const snap0 = await loadPublicSnapshotFrames(roomId);
-    const snap = (Array.isArray(snap0) && snap0.length===60) ? snap0.slice() : Array.from({length:60}, () => null);
-    if (typeof dataUrl === "string" && dataUrl) snap[idx] = dataUrl;
+
+    const snap = Array.from({length:60}, () => null);
+
+    // 「自分が描いた時点でのアニメ」= 自分のコマ + それ以前（0..idx-1）
+    // 参加方式の都合上、idxより後が埋まることは基本的に無い（最若空き割当）
+    // なので 0..idx のみ保存しておけば「勝手に最新化」もしない。
+    if (!isPrivateLocal){
+      const need = [];
+      for (let i=0;i<idx;i++){
+        if (!filled[i]) continue;
+        if (!frames[i] && connected) need.push(i);
+      }
+      // Request missing frames in parallel to avoid long waits on the last frames.
+      for (const i of need) requestFrame(i);
+      await Promise.all(need.map((i) => waitForFrameData(i, 2000)));
+
+      for (let i=0;i<idx;i++){
+        if (!filled[i]) continue;
+        if (frames[i]) snap[i] = frames[i];
+      }
+    }
+
+    if (typeof myDataUrl === "string" && myDataUrl) snap[idx] = myDataUrl;
+
     await savePublicSnapshotFrames(roomId, snap);
-    window.V15.addLog("pub_snapshot_saved", { roomId, frameIndex: idx, has: !!(typeof dataUrl === "string" && dataUrl) });
+    window.V15.addLog("pub_snapshot_saved", { roomId, upTo: idx, savedCount: snap.filter(Boolean).length });
   }catch(e){
     window.V15.addLog("pub_snapshot_save_error", { message: String(e?.message||e) });
   }
 }
+
 
 async function persistPublicSnapshot(roomId, theme, snapshotFrames){
   try{
