@@ -453,7 +453,8 @@ function connectIfNeeded(){
         const thumb = frames[0] || c.toDataURL("image/png");
         addPublicWork({ roomId, theme, thumbDataUrl: thumb });
         // Save local snapshot at submit time (manual update later)
-        { const snap = frames.slice(); snap[0] = (frames[0] || c.toDataURL("image/png")); persistPublicSnapshot(roomId, theme, snap); }
+        { const dataUrl0 = (frames[0] || (()=>{ try{ return c.toDataURL("image/png"); }catch(e){ return null; } })());
+          persistPublicFrameOnly(roomId, 0, dataUrl0); }
 
         stopTimer();
         toastTitle.textContent = "終了！";
@@ -473,13 +474,13 @@ function connectIfNeeded(){
         if (roomId) {
           addPublicWork({ roomId, theme, thumbDataUrl: thumb });
           // Save local snapshot at submit time (manual update later)
-          const snap = frames.slice();
-          // ensure submitted frame is present
-          try{ snap[assigned] = snap[assigned] || c.toDataURL("image/png"); }catch(e){}
-          persistPublicSnapshot(roomId, theme, snap);
+          let myUrl = null;
+          try{ myUrl = c.toDataURL("image/png"); }catch(e){}
+          persistPublicFrameOnly(roomId, assigned, myUrl);
         }
         // Save local snapshot at submit time (manual update later)
-        { const snap = frames.slice(); snap[0] = (frames[0] || c.toDataURL("image/png")); persistPublicSnapshot(roomId, theme, snap); }
+        { const dataUrl0 = (frames[0] || (()=>{ try{ return c.toDataURL("image/png"); }catch(e){ return null; } })());
+          persistPublicFrameOnly(roomId, 0, dataUrl0); }
         return;
       }
       if (m.t === "error") setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
@@ -582,6 +583,22 @@ if (!isPrivateLocal && assigned>=0){
   const dft = loadDraft();
   if (dft && dft.startsWith("data:image/")) { frames[assigned] = dft; if (cur === assigned) drawFrame(cur); }
 }
+
+async function persistPublicFrameOnly(roomId, frameIndex, dataUrl){
+  try{
+    if (!roomId) return;
+    const idx = Number(frameIndex);
+    if (!Number.isFinite(idx) || idx<0 || idx>=60) return;
+    const snap0 = await loadPublicSnapshotFrames(roomId);
+    const snap = (Array.isArray(snap0) && snap0.length===60) ? snap0.slice() : Array.from({length:60}, () => null);
+    if (typeof dataUrl === "string" && dataUrl) snap[idx] = dataUrl;
+    await savePublicSnapshotFrames(roomId, snap);
+    window.V15.addLog("pub_snapshot_saved", { roomId, frameIndex: idx, has: !!(typeof dataUrl === "string" && dataUrl) });
+  }catch(e){
+    window.V15.addLog("pub_snapshot_save_error", { message: String(e?.message||e) });
+  }
+}
+
 async function persistPublicSnapshot(roomId, theme, snapshotFrames){
   try{
     if (!roomId) return;
