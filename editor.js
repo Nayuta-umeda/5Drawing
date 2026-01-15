@@ -1,4 +1,4 @@
-import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames } from "./util.js";
+import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, ensurePublicSnapshotFrames, savePublicSnapshotFrames } from "./util.js";
 window.V15.ensureLogUi();
 window.V15.addLog("editor_init", { href: location.href });
 
@@ -410,6 +410,8 @@ function connectIfNeeded(){
 
         const thumb = frames[0] || c.toDataURL("image/png");
         addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+        // Save local snapshot at submit time (manual update later)
+        { const snap = frames.slice(); snap[0] = (frames[0] || c.toDataURL("image/png")); persistPublicSnapshot(roomId, theme, snap); }
 
         stopTimer();
         toastTitle.textContent = "終了！";
@@ -426,7 +428,16 @@ function connectIfNeeded(){
         primaryBtn.disabled = true;
 
         const thumb = frames[0] || null;
-        if (roomId) addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+        if (roomId) {
+          addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+          // Save local snapshot at submit time (manual update later)
+          const snap = frames.slice();
+          // ensure submitted frame is present
+          try{ snap[assigned] = snap[assigned] || c.toDataURL("image/png"); }catch(e){}
+          persistPublicSnapshot(roomId, theme, snap);
+        }
+        // Save local snapshot at submit time (manual update later)
+        { const snap = frames.slice(); snap[0] = (frames[0] || c.toDataURL("image/png")); persistPublicSnapshot(roomId, theme, snap); }
         return;
       }
       if (m.t === "error") setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
@@ -519,3 +530,22 @@ if (!isPrivateLocal && assigned>=0){
   const dft = loadDraft();
   if (dft && dft.startsWith("data:image/")) { frames[assigned] = dft; if (cur === assigned) drawFrame(cur); }
 }
+async function persistPublicSnapshot(roomId, theme, snapshotFrames){
+  try{
+    if (!roomId) return;
+    // Ensure full-length array
+    let frames60 = snapshotFrames;
+    if (!Array.isArray(frames60) || frames60.length !== 60){
+      frames60 = Array.from({length:60}, (_,i)=> snapshotFrames?.[i] ?? null);
+    }
+    await savePublicSnapshotFrames(roomId, frames60);
+    // also keep latest thumb in meta for list UI
+    const thumb = frames60[0] || null;
+    // nothing else; meta is handled by addPublicWork/updateWorkMeta
+    window.V15.addLog("pub_snapshot_saved", { roomId, theme, has0: !!thumb });
+  }catch(e){
+    window.V15.addLog("pub_snapshot_save_error", { message: String(e?.message||e) });
+  }
+}
+
+

@@ -68,6 +68,26 @@ export function getWork(id){
   return listWorks().find(x => x.id === id) || null;
 }
 
+
+// ---- IndexedDB for public snapshot frames (manual update only) ----
+export async function ensurePublicSnapshotFrames(roomId){
+  const key = "pub:" + String(roomId || "");
+  const existing = await idbGetWork(key);
+  if (existing && Array.isArray(existing.frames) && existing.frames.length === 60) return existing.frames;
+  const frames = Array.from({length:60}, () => null);
+  await idbPutWork({ id: key, frames, updatedAt: Date.now() });
+  return frames;
+}
+export async function savePublicSnapshotFrames(roomId, frames){
+  const key = "pub:" + String(roomId || "");
+  await idbPutWork({ id: key, frames, updatedAt: Date.now() });
+}
+export async function loadPublicSnapshotFrames(roomId){
+  const key = "pub:" + String(roomId || "");
+  const r = await idbGetWork(key);
+  return r?.frames || null;
+}
+
 // ---- IndexedDB for private frames ----
 const DB_NAME = "anim5s_private_db_v1";
 const STORE = "works";

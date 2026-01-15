@@ -1,4 +1,4 @@
-import { qs, clamp } from "./util.js";
+import { qs, clamp, loadPublicSnapshotFrames } from "./util.js";
 
 window.V15.ensureLogUi();
 window.V15.addLog("page_load", { path: location.pathname });
@@ -151,3 +151,18 @@ if (gifSave){
     }
   };
 }
+async function initLocalSnapshot(){
+  try{
+    if (!useLocal) return;
+    setStatus("ローカル履歴を表示中（更新はギャラリーの「更新」から）");
+    const snap = await loadPublicSnapshotFrames(roomId);
+    if (Array.isArray(snap) && snap.length === 60){
+      for (let i=0;i<60;i++) frames[i] = snap[i] || null;
+    }
+    drawFrame(cur);
+  }catch(e){
+    setStatus("ローカル履歴の読み込みに失敗しました");
+  }
+}
+
+

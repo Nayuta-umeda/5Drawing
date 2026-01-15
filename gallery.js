@@ -1,4 +1,4 @@
-import { listWorks, updateWorkMeta } from "./util.js";
+import { listWorks, updateWorkMeta, savePublicSnapshotFrames } from "./util.js";
 
 window.V15.ensureLogUi();
 window.V15.addLog("page_load", { path: location.pathname });
@@ -30,7 +30,14 @@ function mk(tag, cls, text){
   return el;
 }
 
+
+function openViewer(roomId, theme){
+  const sp = new URLSearchParams({ roomId, theme: theme || "" });
+  sp.set("useLocal", "1");
+  location.href = "./viewer.html?" + sp.toString();
+}
 function makeWorkCard(w){
+
   const card = mk("div", "card");
   card.style.padding = "12px";
   card.style.marginBottom = "10px";
@@ -80,13 +87,18 @@ function makeWorkCard(w){
 }
 
 function updatePublic(w){
-  showToast("更新中…", "サーバに接続しています");
-  const ws = window.V15.createLoggedWebSocket();
+  const ws = window.V15.makeWs();
+  const MAX_MS = 22000;
+  let filled = null;
+  const frames = Array.from({length:60}, () => null);
+  const pending = new Set();
 
-  const timeout = setTimeout(() => {
+  showToast("更新中", "サーバから現在のコマ情報を取得しています…");
+  const t0 = Date.now();
+  const timer = setTimeout(() => {
     try{ ws.close(); }catch(e){}
-    showToast("更新失敗", "タイムアウト：サーバに繋がりませんでした");
-  }, 9000);
+    showToast("更新失敗", "タイムアウト：通信が完了しませんでした");
+  }, MAX_MS);
 
   ws.addEventListener("open", () => {
     ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
@@ -94,24 +106,62 @@ function updatePublic(w){
     ws.send(JSON.stringify({ v:1, t:"resync", ts:Date.now(), data:{ roomId:w.roomId } }));
   });
 
-  ws.addEventListener("message", (ev) => {
+  function requestFrame(i){
+    if (pending.has(i)) return;
+    pending.add(i);
+    ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId:w.roomId, frameIndex:i } }));
+  }
+
+  async function finalizeOk(){
+    clearTimeout(timer);
+    try{ ws.close(); }catch(e){}
+    // Save snapshot for "見る" (manual update)
+    await savePublicSnapshotFrames(w.roomId, frames);
+    updateWorkMeta(w.id, { lastSyncAt: Date.now(), filled, theme: w.theme });
+    showToast("更新完了", "「見る」でローカルに保存された最新スナップショットを確認できます");
+  }
+
+  ws.addEventListener("message", async (ev) => {
     try{
       const m = JSON.parse(ev.data);
-      if (m.t === "room_state") {
-        clearTimeout(timeout);
+      if (m.t === "room_state"){
         const d = m.data || {};
-        updateWorkMeta(w.id, { lastSyncAt: Date.now(), filled: d.filled || null, theme: d.theme || w.theme });
-        try{ ws.close(); }catch(e){}
-        showToast("更新完了", "「見る」で現在の状態を確認できます");
+        filled = Array.isArray(d.filled) ? d.filled.slice(0,60) : null;
+        if (typeof d.theme === "string" && d.theme) updateWorkMeta(w.id, { theme: d.theme });
+        // Request only filled frames
+        if (filled){
+          for (let i=0;i<60;i++) if (filled[i]) requestFrame(i);
+          // If no frames filled, still finish quickly
+          if (filled.every(v => !v)) return await finalizeOk();
+        }
+        return;
       }
-      if (m.t === "error") {
-        clearTimeout(timeout);
+      if (m.t === "frame_data"){
+        const d = m.data || {};
+        const i = d.frameIndex;
+        if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
+          frames[i] = d.dataUrl;
+          pending.delete(i);
+          // When all requested are received, finish
+          if (filled && pending.size === 0){
+            return await finalizeOk();
+          }
+          // Soft timeout extension
+          if (Date.now() - t0 > MAX_MS - 2000 && pending.size > 0){
+            // Let timer hit; no action
+          }
+        }
+        return;
+      }
+      if (m.t === "error"){
+        clearTimeout(timer);
         try{ ws.close(); }catch(e){}
         showToast("更新失敗", m.data?.message || m.message || "unknown");
       }
     }catch(e){}
   });
 }
+
 
 function render(){
   const list = listWorks();
