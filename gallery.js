@@ -88,7 +88,7 @@ function makeWorkCard(w){
 }
 
 function updatePublic(w){
-  const ws = window.V15.makeWs();
+  const ws = window.V15.createLoggedWebSocket();
   const MAX_MS = 22000;
   let filled = null;
   const frames = Array.from({length:60}, () => null);

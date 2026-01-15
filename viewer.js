@@ -5,6 +5,10 @@ window.V15.addLog("page_load", { path: location.pathname });
 
 const roomId = (qs("roomId") || "").toString().toUpperCase();
 const themeQ = (qs("theme") || "").toString();
+const allowLive = qs("live") === "1";
+const useLocal = true; // Phase2: viewer is local-only by default
+
+window.V15.addLog("viewer_init", { roomId, allowLive, search: location.search });
 
 const sub = document.getElementById("sub");
 const net = document.getElementById("net");
@@ -77,56 +81,55 @@ if (!roomId){
   setCur(0);
 } else {
   sub.textContent = "お題：" + (themeQ || "-");
-  ws = window.V15.createLoggedWebSocket();
-  net.textContent = "接続：接続中…";
+  initLocalSnapshot();
+  if (allowLive){
+    ws = window.V15.createLoggedWebSocket();
+  
+    net.textContent = "接続：接続中…";
 
-  ws.addEventListener("open", () => {
-    connected = true;
-    ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
-    ws.send(JSON.stringify({ v:1, t:"join_room", ts:Date.now(), data:{ roomId, view:true } }));
-    ws.send(JSON.stringify({ v:1, t:"resync", ts:Date.now(), data:{ roomId } }));
-  });
+    ws.addEventListener("open", () => {
+      connected = true;
+      ws.send(JSON.stringify({ v:1, t:"hello", ts:Date.now(), data:{} }));
+      ws.send(JSON.stringify({ v:1, t:"join_room", ts:Date.now(), data:{ roomId, view:true } }));
+      ws.send(JSON.stringify({ v:1, t:"resync", ts:Date.now(), data:{ roomId } }));
+    });
 
-  ws.addEventListener("message", (ev) => {
-    try{
-      const m = JSON.parse(ev.data);
-      if (m.t === "room_state") {
-        const d = m.data || {};
-        if (d.theme) sub.textContent = "お題：" + d.theme;
-        if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
-        net.textContent = "接続：OK";
-        if (filled[0] && !cache[0]) requestFrame(0);
-        if (filled[cur] && !cache[cur]) requestFrame(cur);
-      }
-      if (m.t === "frame_data") {
-        const d = m.data || {};
-        const i = d.frameIndex;
-        if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
-          cache[i] = d.dataUrl;
-          pending.delete(i);
-          const w = waiters.get(i);
-          if (w){ clearTimeout(w.t); waiters.delete(i); w.resolve(cache[i]); }
-          if (i === cur) drawFrame(cur);
+    ws.addEventListener("message", (ev) => {
+      try{
+        const m = JSON.parse(ev.data);
+        if (m.t === "room_state") {
+          const d = m.data || {};
+          if (d.theme) sub.textContent = "お題：" + d.theme;
+          if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+          net.textContent = "接続：OK";
+          if (filled[0] && !cache[0]) requestFrame(0);
+          if (filled[cur] && !cache[cur]) requestFrame(cur);
         }
-      }
-      if (m.t === "frame_committed") {
-        const d = m.data || {};
-        const i = d.frameIndex;
-        if (typeof i === "number" && i>=0 && i<60) {
-          filled[i] = true;
-          cache[i] = null;
-          if (i === cur) requestFrame(i);
+        if (m.t === "frame_data") {
+          const d = m.data || {};
+          const i = d.frameIndex;
+          if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
+            cache[i] = d.dataUrl;
+            pending.delete(i);
+            if (i === cur) drawFrame(cur);
+            const w = waiters.get(i);
+            if (w){ clearTimeout(w.t); w.resolve(d.dataUrl); waiters.delete(i); }
+          }
         }
-      }
-      if (m.t === "error") net.textContent = "接続：エラー";
-    }catch(e){}
-  });
+      }catch(e){}
+    });
 
-  ws.addEventListener("close", () => {
-    connected = false;
-    net.textContent = "接続：切断";
-  });
-
+    ws.addEventListener("error", () => {
+      connected = false;
+      net.textContent = "接続：エラー";
+    });
+    ws.addEventListener("close", () => {
+      connected = false;
+      net.textContent = "接続：切断";
+    });
+  } else {
+    net.textContent = "接続：ローカル（更新はギャラリーの「更新」）";
+  }
   setCur(0);
 }
 
@@ -164,5 +167,4 @@ async function initLocalSnapshot(){
     setStatus("ローカル履歴の読み込みに失敗しました");
   }
 }
-
 
