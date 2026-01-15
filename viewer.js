@@ -167,11 +167,20 @@ async function initLocalSnapshot(){
     if (!useLocal) return;
     setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
     const snap = await loadPublicSnapshotFrames(roomId);
+    if (!snap){
+      setStatus("表示：ローカル履歴なし（ギャラリーで「更新」すると表示できます）");
+      drawFrame(cur);
+      return;
+    }
     if (Array.isArray(snap) && snap.length === 60){
-      for (let i=0;i<60;i++) frames[i] = snap[i] || null;
+      for (let i=0;i<60;i++){
+        cache[i] = snap[i] || null;
+        filled[i] = !!snap[i];
+      }
     }
     drawFrame(cur);
-  }catch(e){
+   }catch(e){
+    window.V15.addLog("error", { message: "viewer_local_load_failed: " + (e && (e.message||String(e))) });
     setStatus("表示：ローカル履歴の読み込みに失敗しました");
   }
 }
