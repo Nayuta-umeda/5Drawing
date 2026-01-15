@@ -66,6 +66,11 @@ const toastText = document.getElementById("toastText");
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 
+// Onion-skin overlay (not baked into saved frames)
+const onion = document.getElementById("onion");
+let activeTab = "draw";
+
+
 // Palette
 const PALETTE = [
   { name:"INK", v:"#1f2937" },
@@ -112,11 +117,13 @@ function setStatus(t){ statusEl.textContent = t; }
 
 function setTab(name){
   const draw = name === "draw";
+  activeTab = draw ? "draw" : "view";
   tabDraw.classList.toggle("active", draw);
   tabView.classList.toggle("active", !draw);
   panelDraw.classList.toggle("hidden", !draw);
   panelView.classList.toggle("hidden", draw);
   c.style.pointerEvents = draw ? "auto" : "none";
+  updateOnion();
 }
 tabDraw.onclick = () => setTab("draw");
 tabView.onclick = () => setTab("view");
@@ -193,31 +200,35 @@ function updateOverlay(){
 
 function drawFrame(i){
   paintWhite();
-
-  // onion skin for public edit
-  if (!isPrivateLocal && i > 0 && frames[i-1]) {
-    const prev = new Image();
-    prev.onload = () => {
-      paintWhite();
-      ctx.save();
-      ctx.globalAlpha = 0.18;
-      ctx.drawImage(prev,0,0,c.width,c.height);
-      ctx.restore();
-      if (frames[i]) {
-        const img = new Image();
-        img.onload = () => ctx.drawImage(img,0,0,c.width,c.height);
-        img.src = frames[i];
-      }
-    };
-    prev.src = frames[i-1];
-    return;
-  }
-
   if (!frames[i]) return;
   const img = new Image();
   img.onload = () => { paintWhite(); ctx.drawImage(img,0,0,c.width,c.height); };
   img.src = frames[i];
 }
+
+function canDrawThisFrame(){
+  // "描く"タブで実際に描ける状態のときだけ onion を出す
+  if (activeTab !== "draw") return false;
+  if (isPrivateLocal) return true;
+  if (isCreatePublic) return cur === 0;
+  if (isJoinPublic) return (assigned >= 0 && cur === assigned);
+  return false;
+}
+
+function updateOnion(){
+  try{
+    if (!onion) return;
+    const show = canDrawThisFrame() && cur > 0 && !!frames[cur-1];
+    if (show){
+      onion.src = frames[cur-1];
+      onion.style.display = "block";
+    }else{
+      onion.style.display = "none";
+      onion.removeAttribute("src");
+    }
+  }catch(_e){}
+}
+
 
 function setCur(i){
   cur = clamp(i,0,59);
@@ -231,7 +242,7 @@ function setCur(i){
       lockHint.textContent = "非担当コマは閲覧のみ（薄グレー＋❌）。";
       lockHint.style.color = "var(--muted)";
     } else {
-      lockHint.textContent = "担当コマです。描けます（提出は送信 or タイムアウト）。";
+      lockHint.textContent = "担当コマです。描けます（提出は送信）。";
       lockHint.style.color = "var(--text)";
       if (!frames[cur]) {
         const dft = loadDraft();
@@ -239,10 +250,14 @@ function setCur(i){
       }
     }
     if (filled[cur] && !frames[cur]) requestFrame(cur);
+      // onion-skin needs previous frame (best-effort)
+      if (canDrawThisFrame() && cur>0 && filled[cur-1] && !frames[cur-1]) requestFrame(cur-1);
   } else {
     lockHint.textContent = "プライベート：全コマ自由。保存/GIFは「見る」タブ。";
     lockHint.style.color = "var(--text)";
   }
+
+  updateOnion();
 }
 
 viewSlider.oninput = () => setCur(parseInt(viewSlider.value,10)-1);
@@ -426,7 +441,7 @@ function connectIfNeeded(){
         if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
           frames[i] = d.dataUrl;
           pendingFrames.delete(i);
-          if (i === cur || i === cur-1) drawFrame(cur);
+          if (i === cur || i === cur-1) { drawFrame(cur); updateOnion(); }
         }
         return;
       }
@@ -450,7 +465,7 @@ function connectIfNeeded(){
         updateLabels();
         renderTimer();
 
-        const thumb = frames[0] || c.toDataURL("image/png");
+        const thumb = frames[0] || frames[cur] || c.toDataURL("image/png");
         // NOTE: for created public, the creator always contributes frame 0.
         addPublicWork({ roomId, theme, thumbDataUrl: thumb, myFrameIndex: 0 });
         // Save local snapshot at submit time (manual update later)
@@ -496,7 +511,7 @@ async function savePrivate(){
   primaryBtn.disabled = true;
   try{
     await savePrivateFrames(workId, frames);
-    const thumb = frames[0] || c.toDataURL("image/png");
+    const thumb = frames[0] || frames[cur] || c.toDataURL("image/png");
     updateWorkMeta(workId, { thumb });
     toastTitle.textContent = "保存！";
     toastText.textContent = "プライベート作品を保存しました。";

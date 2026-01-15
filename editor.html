@@ -59,6 +59,20 @@
       box-shadow:0 10px 26px rgba(20,24,35,.08);
       touch-action:none;
     }
+
+    #canvasWrap{ position:relative; }
+    #onion{
+      position:absolute;
+      inset:10px;
+      border-radius:18px;
+      opacity:0.18;
+      image-rendering:pixelated;
+      pointer-events:none;
+      display:none;
+      z-index:2;
+    }
+    #c{ position:relative; z-index:1; }
+    #lockOverlay{ z-index:3; }
     #lockOverlay{
       position:absolute;
       inset:10px;
@@ -377,6 +391,8 @@ footer.card{
     <div id="main">
       <div id="canvasWrap" class="card" style="padding:10px;">
         <canvas id="c" width="256" height="256"></canvas>
+        <img id="onion" alt="" />
+
         <div id="lockOverlay"><div class="x">❌</div></div>
       </div>
     </div>
