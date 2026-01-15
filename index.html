@@ -158,33 +158,40 @@ body{
 /* Let the button card expand */
 #mainActions .btnCol button{ padding: 14px 12px !important; font-size: clamp(15px, 4vw, 18px) !important; }
 
+
+
+/* === LOBBY COMPACT (V15.9) === */
+.lobby.container{
+  /* keep safe-area and avoid huge dead space */
+  padding-top: max(10vh, env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: max(10vh, env(safe-area-inset-bottom, 0px)) !important;
+}
+.lobbyTitle{ padding: 10px 12px !important; }
+#mainActions .btnCol{ gap: 10px !important; }
+#mainActions .btnCol .btn{ padding: 14px 12px !important; font-size: clamp(15px, 4.2vw, 18px) !important; }
+
 </style>
 </head>
 <body>
-<div class="verBadge" id="verBadge">V15.8</div>
-  <div class="container">
-    <div class="card" style="padding:14px;" id="mainActions">
+  <div class="verBadge" id="verBadge">V15.9</div>
+  <div class="container lobby">
+    <div class="card lobbyTitle" style="padding:14px;">
       <div class="minaTitle">みんあ</div>
       <div class="minaSub">1人1コマで、5秒の小さな物語。</div>
-</div>
-<div class="k"><span>コマ数</span><b>60</b></div>
-        <div class="k"><span>fps</span><b>12</b></div>
-        <div class="k"><span>担当</span><b>1人1コマ</b></div>
-      </div>
     </div>
 
-    <div class="card" style="padding:14px;">
-      <div class="col">
+    <div class="card" style="padding:14px;" id="mainActions">
+      <div class="col btnCol">
         <button class="btn btnAccent" onclick="location.href='./create.html'">テーマを作成</button>
         <button class="btn btnAccent" onclick="location.href='./join_random.html'">テーマに参加（ランダム）</button>
         <button class="btn btnAccent" onclick="location.href='./gallery.html'">自分の作品</button>
       </div>
       <hr class="sep" />
       <div class="small muted">
-        Render接続が怪しいときは <a class="badge" href="./ws-test.html">WSテスト</a> を使ってね。
+        接続が怪しいときは <a class="badge" href="./ws-test.html">WSテスト</a> を使ってね。
       </div>
     </div>
-</div>
+  </div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
