@@ -22,6 +22,7 @@ if (isCreatePublic && !draftId){
 }
 
 const reservationToken = (qs("reservationToken") || "").toString();
+const reservationExpiresAt = Number(qs("reservationExpiresAt") ?? 0);
 const workId = (qs("workId") || "").toString();
 
 // UI
@@ -304,8 +305,16 @@ c.addEventListener("pointerup", onUp);
 c.addEventListener("pointercancel", onUp);
 
 // Timer
-let timerLeftMs = (isPrivateLocal ? Infinity : 3*60*1000);
+let personalDeadlineAt = (isPrivateLocal ? Infinity : (Date.now() + 3*60*1000));
+if (!isPrivateLocal && isJoinPublic && Number.isFinite(reservationExpiresAt) && reservationExpiresAt > 0){
+  personalDeadlineAt = reservationExpiresAt;
+}
+let timerLeftMs = (isPrivateLocal ? Infinity : Math.max(0, personalDeadlineAt - Date.now()));
 let timerId = null;
+
+// Room-level deadline (Phase3)
+let roomDeadlineAt = 0;
+let roomPhase = "";
 
 function fmt(ms){
   if (!Number.isFinite(ms)) return "制限なし";
@@ -315,18 +324,31 @@ function fmt(ms){
   return `${mm}:${ss}`;
 }
 function tick(){
-  timerLeftMs -= 200;
-  timerEl.textContent = "残り " + fmt(timerLeftMs);
+  if (!isPrivateLocal){
+    timerLeftMs = Math.max(0, personalDeadlineAt - Date.now());
+  }
+  renderTimer();
   if (timerLeftMs <= 0){
     timerLeftMs = 0;
-    timerEl.textContent = "残り 00:00";
+    renderTimer();
     stopTimer();
     if (!isPrivateLocal) primaryAction(true);
   }
 }
+
+function renderTimer(){
+  if (isPrivateLocal) { timerEl.textContent = "制限なし"; return; }
+  const parts = [];
+  parts.push("担当 " + fmt(timerLeftMs));
+  if (roomDeadlineAt && Number.isFinite(roomDeadlineAt)){
+    const roomLeft = Math.max(0, roomDeadlineAt - Date.now());
+    parts.push("部屋 " + fmt(roomLeft));
+  }
+  timerEl.textContent = "残り " + parts.join(" / ");
+}
 function startTimer(){
   if (isPrivateLocal) { timerEl.textContent = "制限なし"; return; }
-  timerEl.textContent = "残り " + fmt(timerLeftMs);
+  renderTimer();
   if (timerId) return;
   timerId = setInterval(tick, 200);
 }
@@ -374,8 +396,25 @@ function connectIfNeeded(){
       if (m.t === "room_state") {
         const d = m.data || {};
         if (d.theme) theme = d.theme;
+        if (typeof d.phase === "string") roomPhase = d.phase;
+        if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
         if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
         updateLabels();
+        renderTimer();
+
+        // Phase3: lock submission after deadline / non-drawing phase
+        if (!isPrivateLocal){
+          const pastDeadline = roomDeadlineAt && Date.now() >= roomDeadlineAt;
+          if (roomPhase && roomPhase !== "DRAWING"){
+            stopTimer();
+            primaryBtn.disabled = true;
+            setStatus("状態：" + roomPhase + "（提出不可）");
+          } else if (pastDeadline){
+            stopTimer();
+            primaryBtn.disabled = true;
+            setStatus("締切：終了（提出不可）");
+          }
+        }
         if (filled[0] && !frames[0]) requestFrame(0);
         if (!isPrivateLocal && assigned>0 && filled[assigned-1] && !frames[assigned-1]) requestFrame(assigned-1);
         if (filled[cur] && !frames[cur]) requestFrame(cur);
@@ -405,8 +444,11 @@ function connectIfNeeded(){
         const d = m.data || {};
         roomId = d.roomId;
         theme = d.theme || theme;
+        if (typeof d.phase === "string") roomPhase = d.phase;
+        if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
         if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
         updateLabels();
+        renderTimer();
 
         const thumb = frames[0] || c.toDataURL("image/png");
         addPublicWork({ roomId, theme, thumbDataUrl: thumb });
@@ -474,6 +516,16 @@ async function primaryAction(isTimeout=false){
 
   if (!ws || !connected){
     alert("サーバに接続できません（提出不可）。");
+    return;
+  }
+
+  // Phase3: room-level deadline/phase guard (client-side)
+  if (roomPhase && roomPhase !== "DRAWING"){
+    alert("この部屋は提出を受け付けていません（" + roomPhase + "）");
+    return;
+  }
+  if (roomDeadlineAt && Date.now() >= roomDeadlineAt){
+    alert("締切を過ぎました（提出不可）");
     return;
   }
 

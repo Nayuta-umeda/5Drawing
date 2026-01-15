@@ -32,6 +32,25 @@ let filled = Array.from({length:60}, ()=>false);
 let cache = Array.from({length:60}, ()=>null);
 let cur = 0;
 
+// Phase3: room-level deadline display (best-effort)
+let roomDeadlineAt = 0;
+let roomPhase = "";
+
+function fmt(ms){
+  if (!Number.isFinite(ms)) return "--:--";
+  const s = Math.max(0, Math.floor(ms/1000));
+  const mm = String(Math.floor(s/60)).padStart(2,"0");
+  const ss = String(s%60).padStart(2,"0");
+  return `${mm}:${ss}`;
+}
+
+function renderFrameLabel(){
+  const extra = (roomDeadlineAt && Number.isFinite(roomDeadlineAt))
+    ? ` / 部屋 ${fmt(roomDeadlineAt - Date.now())}`
+    : "";
+  frameLabel.textContent = `コマ ${cur+1} / 60${extra}`;
+}
+
 function paintWhite(){
   ctx.save();
   ctx.fillStyle = "#fff";
@@ -51,7 +70,7 @@ function drawFrame(i){
 function setCur(i){
   cur = clamp(i,0,59);
   slider.value = String(cur+1);
-  frameLabel.textContent = `コマ ${cur+1} / 60`;
+  renderFrameLabel();
   drawFrame(cur);
   if (filled[cur] && !cache[cur]) requestFrame(cur);
 }
@@ -108,8 +127,11 @@ if (!roomId){
         if (m.t === "room_state") {
           const d = m.data || {};
           if (d.theme) sub.textContent = "お題：" + d.theme;
+          if (typeof d.phase === "string") roomPhase = d.phase;
+          if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
           if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
-          net.textContent = "接続：OK";
+          net.textContent = "接続：OK" + (roomPhase ? `（${roomPhase}）` : "");
+          renderFrameLabel();
           if (filled[0] && !cache[0]) requestFrame(0);
           if (filled[cur] && !cache[cur]) requestFrame(cur);
         }
@@ -184,4 +206,11 @@ async function initLocalSnapshot(){
     setStatus("表示：ローカル履歴の読み込みに失敗しました");
   }
 }
+
+// Phase3: keep the deadline label ticking (best-effort)
+setInterval(() => {
+  try{
+    if (roomDeadlineAt) renderFrameLabel();
+  }catch(_e){}
+}, 1000);
 
