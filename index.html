@@ -121,10 +121,19 @@ body{
   pointer-events:none;
 }
 
+
+
+/* === LOBBY TUNE (V15.5) === */
+.container{ gap:12px !important; }
+/* make first action card sit closer to top inside safe area */
+.container > .card:first-child{ margin-top: 0 !important; }
+/* keep compact title card when it is second */
+.container > .card:nth-child(2) .kv{ margin-top: 10px !important; }
+
 </style>
 </head>
 <body>
-<div class="verBadge" id="verBadge">V15.3</div>
+<div class="verBadge" id="verBadge">V15.5</div>
   <div class="container">
     <div class="card" style="padding:14px;">
       <div class="h1">共同5秒アニメ</div>

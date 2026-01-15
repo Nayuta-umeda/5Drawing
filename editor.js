@@ -12,6 +12,15 @@ let roomId = (qs("roomId") || "").toString().toUpperCase();
 let assigned = Number(qs("assigned") ?? -1);
 if (!Number.isFinite(assigned)) assigned = -1;
 
+
+let draftId = (qs("draftId") || "").toString();
+if (isCreatePublic && !draftId){
+  draftId = Math.random().toString(36).slice(2,9).toUpperCase();
+  const sp = new URLSearchParams(location.search);
+  sp.set("draftId", draftId);
+  history.replaceState(null, "", location.pathname + "?" + sp.toString());
+}
+
 const reservationToken = (qs("reservationToken") || "").toString();
 const workId = (qs("workId") || "").toString();
 
@@ -162,7 +171,7 @@ function internalDraftUpdate(){
   window.V15.addLog("draft_updated", { frame: cur+1, bytes: dataUrl.length, mode });
 }
 function draftKey(){
-  if (isCreatePublic) return `anim5s_draft_createpub:${theme}`;
+  if (isCreatePublic) return `anim5s_draft_createpub:${draftId}`;
   return `anim5s_draft_joinpub:${roomId}:${reservationToken}:${assigned}`;
 }
 function loadDraft(){
