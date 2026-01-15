@@ -12,7 +12,6 @@ const slider = document.getElementById("slider");
 const prev = document.getElementById("prev");
 const next = document.getElementById("next");
 const frameLabel = document.getElementById("frameLabel");
-const gifSave = document.getElementById("gifSave");
 
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
@@ -54,15 +53,6 @@ paintWhite();
 let ws = null;
 let connected = false;
 const pending = new Set();
-const waiters = new Map();
-
-function waitForFrame(i, ms=2500){
-  return new Promise((resolve) => {
-    if (cache[i]) return resolve(cache[i]);
-    const t = setTimeout(() => { waiters.delete(i); resolve(null); }, ms);
-    waiters.set(i, { resolve, t });
-  });
-}
 
 function requestFrame(i){
   if (!ws || !connected) return;
@@ -104,8 +94,6 @@ if (!roomId){
         if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
           cache[i] = d.dataUrl;
           pending.delete(i);
-          const w = waiters.get(i);
-          if (w){ clearTimeout(w.t); waiters.delete(i); w.resolve(cache[i]); }
           if (i === cur) drawFrame(cur);
         }
       }
@@ -128,26 +116,4 @@ if (!roomId){
   });
 
   setCur(0);
-}
-
-
-// GIF Save button
-if (gifSave){
-  gifSave.onclick = async () => {
-    try{
-      for (let i=0;i<60;i++){
-        if (filled[i] && !cache[i]){ requestFrame(i); await waitForFrame(i, 2500); }
-      }
-      const dataUrls = Array.from({length:60}, (_,i)=> cache[i] || null);
-      const themeText = (sub?.textContent || "").replace(/^お題：/,"").trim() || "anim";
-      const safeTheme = themeText.replace(/[\\/:*?\"<>|]/g, "_");
-      const safeRoom = (roomId || "room").replace(/[^A-Z0-9_-]/g, "_");
-      const filename = `${safeTheme}_${safeRoom}.gif`;
-      const mod = await import("./gif.js");
-      await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs:8, filename });
-    }catch(e){
-      window.V15?.addLog?.("gif_save_failed", { message: String(e?.message || e) });
-      alert("GIF保存に失敗しました。");
-    }
-  };
 }

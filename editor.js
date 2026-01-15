@@ -1,4 +1,6 @@
 import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames } from "./util.js";
+import { exportGifFromDataUrls } from "./gif.js";
+
 window.V15.ensureLogUi();
 window.V15.addLog("editor_init", { href: location.href });
 
@@ -478,14 +480,7 @@ gifBtn.onclick = async () => {
   if (isEditable()) internalDraftUpdate();
   const dataUrls = frames.map(x => x);
   const safeTheme = (theme || "private").replace(/[\\/:*?\"<>|]/g, "_");
-  try{
-    const mod = await import("./gif.js");
-    if (!mod || typeof mod.exportGifFromDataUrls !== "function") throw new Error("exportGifFromDataUrls が見つかりません");
-    await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs: 8, filename: `${safeTheme}.gif` });
-  }catch(e){
-    window.V15?.addLog?.("gif_import_failed", { message: String(e?.message || e) });
-    alert("GIF機能の読み込みに失敗しました。\n（gif.js が壊れている/キャッシュが古い可能性）");
-  }
+  await exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs: 8, filename: `${safeTheme}.gif` });
 };
 
 // boot

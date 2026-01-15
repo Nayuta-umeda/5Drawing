@@ -1,3 +1,4 @@
+\
 // client/gif.js
 // Minimal GIF89a encoder (fixed palette + LZW). For private-local export.
 // Not a general-purpose encoder.
