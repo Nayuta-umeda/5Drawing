@@ -330,6 +330,25 @@ footer.card{
   padding-bottom: 10px !important;
 }
 
+
+
+/* === EXTRA LAYOUT FIX (V15.6) === */
+#app{
+  /* footer(ペン等)を広く、キャンバスを少し上へ */
+  grid-template-rows: 0.7fr 2fr 3.4fr 3.2fr 0.7fr !important;
+  gap: 14px !important;
+}
+#main{
+  align-items:flex-start !important;
+  padding-top: 2px !important;
+}
+footer.card{
+  overflow: hidden !important;
+}
+/* パレットが隠れないように少しだけコンパクトに */
+.palette{ gap:6px !important; }
+.swatch{ height: clamp(26px, 3.0vh, 32px) !important; border-radius: 10px !important; }
+
 </style>
 </head>
 <body>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>共同5秒アニメ - ロビー</title>
+  <title>みんあ - ロビー</title>
   <link rel="stylesheet" href="./styles.css" />
 <style>
 
@@ -123,20 +123,43 @@ body{
 
 
 
-/* === LOBBY TUNE (V15.5) === */
+/* === LOBBY TUNE (V15.7) === */
 .container{ gap:12px !important; }
 /* make first action card sit closer to top inside safe area */
 .container > .card:first-child{ margin-top: 0 !important; }
 /* keep compact title card when it is second */
 .container > .card:nth-child(2) .kv{ margin-top: 10px !important; }
 
+
+
+/* === LOBBY TITLE (V15.7) === */
+.minaTitle{
+  font-family: "M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Arial Rounded MT Bold","Comic Sans MS", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: .06em;
+  font-size: clamp(34px, 8vw, 56px);
+  line-height: 1.05;
+  text-align: center;
+  padding: 8px 6px 2px;
+  color: #ff5da2;
+  text-shadow: 0 10px 26px rgba(255,93,162,.20), 0 2px 0 rgba(255,255,255,.55);
+}
+.minaSub{
+  text-align:center;
+  margin-top: 6px;
+  font-size: clamp(12px, 3vw, 15px);
+  color: rgba(29,31,42,.72);
+}
+
 </style>
 </head>
 <body>
-<div class="verBadge" id="verBadge">V15.5</div>
+<div class="verBadge" id="verBadge">V15.7</div>
   <div class="container">
     <div class="card" style="padding:14px;">
-      <div class="h1">共同5秒アニメ</div>
+      <div class="minaTitle">みんあ</div>
+      <div class="minaSub">1人1コマで、5秒の小さな物語。</div>
+</div>
       <div class="small muted" style="margin-top:6px;">
         1人1コマで5秒アニメ。スマホ前提 / スクロール無し / 白&淡色。
       </div>
@@ -160,16 +183,7 @@ body{
         Render接続が怪しいときは <a class="badge" href="./ws-test.html">WSテスト</a> を使ってね。
       </div>
     </div>
-
-    <div class="card" style="padding:14px;">
-      <div class="h1" style="font-size:14px;">確定仕様（2026-01-15）</div>
-      <div class="small muted" style="line-height:1.55; margin-top:6px;">
-        公開「テーマを作成」は <b>1コマ目を提出した瞬間にだけ</b> サーバに部屋が生成されます（提出まで他人に反映されません / A案）。<br/>
-        プライベート作品は <b>ローカル保存のみ</b>（サーバ保存なし）。<br/>
-        「テーマに参加」は <b>予約トークン方式</b>（競合防止、期限あり）。
-      </div>
-    </div>
-  </div>
+</div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
