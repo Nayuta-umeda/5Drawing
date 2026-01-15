@@ -12,6 +12,13 @@ window.V15.addLog("viewer_init", { roomId, allowLive, search: location.search })
 
 const sub = document.getElementById("sub");
 const net = document.getElementById("net");
+
+function setStatus(msg){
+  try{
+    if (net) net.textContent = String(msg || "");
+  }catch(_e){}
+}
+
 const slider = document.getElementById("slider");
 const prev = document.getElementById("prev");
 const next = document.getElementById("next");
@@ -77,10 +84,11 @@ function requestFrame(i){
 
 if (!roomId){
   sub.textContent = "お題：-";
-  net.textContent = "接続：部屋IDなし";
+  setStatus("表示：部屋IDなし");
   setCur(0);
 } else {
   sub.textContent = "お題：" + (themeQ || "-");
+  setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
   initLocalSnapshot();
   if (allowLive){
     ws = window.V15.createLoggedWebSocket();
@@ -157,14 +165,14 @@ if (gifSave){
 async function initLocalSnapshot(){
   try{
     if (!useLocal) return;
-    setStatus("ローカル履歴を表示中（更新はギャラリーの「更新」から）");
+    setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
     const snap = await loadPublicSnapshotFrames(roomId);
     if (Array.isArray(snap) && snap.length === 60){
       for (let i=0;i<60;i++) frames[i] = snap[i] || null;
     }
     drawFrame(cur);
   }catch(e){
-    setStatus("ローカル履歴の読み込みに失敗しました");
+    setStatus("表示：ローカル履歴の読み込みに失敗しました");
   }
 }
 
