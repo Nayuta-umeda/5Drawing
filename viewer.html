@@ -6,9 +6,9 @@
   <title>閲覧</title>
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    body{ overflow:hidden; }
+    body{ overflow:hidden; height:100vh; box-sizing:border-box; padding-top:max(10vh, env(safe-area-inset-top)); padding-bottom:max(10vh, env(safe-area-inset-bottom)); padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); }
     #wrap{
-      height:100vh;
+      height:100%;
       max-width:560px;
       margin:0 auto;
       padding:8px;
@@ -37,11 +37,200 @@
     }
     #slider{ flex:1; }
     #frameLabel{ margin-top:6px; font-size:12.5px; color:var(--muted); text-align:right; }
-  </style>
+  
+/* === SAFE-AREA + NO-OVERLAP LAYOUT (mobile-first) === */
+:root{
+  --safeTop: max(10vh, env(safe-area-inset-top, 0px));
+  --safeBottom: max(10vh, env(safe-area-inset-bottom, 0px));
+  --uiGap: 10px;
+  --uiPad: 12px;
+  --uiR: 16px;
+  --uiText: clamp(12px, 2.3vw, 16px);
+  --uiTextSm: clamp(11px, 2.1vw, 14px);
+  --uiBtn: clamp(12px, 2.2vw, 15px);
+  --uiBtnPadY: clamp(8px, 1.6vh, 12px);
+  --uiBtnPadX: clamp(10px, 2.4vw, 14px);
+}
+
+html, body{ height:100%; }
+body{
+  margin:0;
+  /* keep the OS/browser chrome clear */
+  padding-top: var(--safeTop);
+  padding-bottom: var(--safeBottom);
+}
+
+#app, .app, .wrap, .container{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+}
+
+.safeShell{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+  padding: var(--uiPad);
+  box-sizing:border-box;
+}
+
+.safeHeader{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size: var(--uiTextSm);
+}
+
+.safeMain{
+  flex: 1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height: 0; /* allow flex children to shrink */
+}
+
+.safeCanvasWrap{
+  width: min(92vw, 420px);
+  aspect-ratio: 1 / 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: var(--uiR);
+  overflow:hidden;
+}
+
+.safeFooter{
+  flex: 0 0 auto;
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+}
+
+.safeTabs{
+  display:flex;
+  gap: 8px;
+}
+.safeTabs button{
+  font-size: var(--uiBtn);
+  padding: var(--uiBtnPadY) var(--uiBtnPadX);
+}
+
+.safePanel{
+  border-radius: var(--uiR);
+  padding: 10px;
+  font-size: var(--uiText);
+}
+
+.safeRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  align-items:center;
+}
+
+.safeRow button, .safeRow input, .safeRow select{
+  font-size: var(--uiBtn);
+}
+
+.verBadge{
+  font-size: 11px;
+  opacity: .65;
+  user-select:none;
+}
+
+
+
+/* === REGION LAYOUT: 10/20/30/30/10 (no overlap) === */
+:root{
+  --safeTop: env(safe-area-inset-top, 0px);
+  --safeBottom: env(safe-area-inset-bottom, 0px);
+  --uiPad: 10px;
+  --gap: 8px;
+  --txt: clamp(11px, 2.2vw, 14px);
+  --txtSm: clamp(10px, 2.0vw, 12.5px);
+  --btn: clamp(11px, 2.2vw, 14px);
+  --btnPY: clamp(7px, 1.2vh, 10px);
+  --btnPX: clamp(9px, 2.2vw, 12px);
+}
+
+body{
+  padding-top: var(--safeTop) !important;
+  padding-bottom: var(--safeBottom) !important;
+}
+
+#wrap{
+  height: calc(100vh - var(--safeTop) - var(--safeBottom)) !important;
+  display: grid !important;
+  grid-template-rows: 1fr 2fr 3fr 3fr 1fr !important; /* 10/20/30/30/10 */
+  gap: var(--gap) !important;
+  min-height: 0 !important;
+}
+
+#spTop{ grid-row: 1; }
+#spBottom{ grid-row: 5; }
+
+#wrap > header.card{
+  grid-row: 2;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#canvasWrap{
+  grid-row: 3;
+  overflow: hidden;
+  min-height: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#wrap > footer.card{
+  grid-row: 4;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#wrap > footer.card{
+  font-size: var(--txt);
+}
+
+button, .tab, .miniBtn, .btn, .btnMini{
+  font-size: var(--btn) !important;
+  padding: var(--btnPY) var(--btnPX) !important;
+}
+
+.h1, #themeName, #title{
+  font-size: clamp(13px, 3vw, 18px) !important;
+}
+
+.small, .muted, #sub, #net, #frameLabel{
+  font-size: var(--txtSm) !important;
+}
+
+.palette .swatch, .swatch{
+  height: clamp(22px, 3.2vh, 32px) !important;
+}
+
+#canvasWrap canvas, canvas#c{
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* keep square within its region */
+#canvasWrap{ padding: 8px !important; }
+#canvasWrap > canvas#c{ aspect-ratio: 1/1; }
+
+</style>
 </head>
 <body>
+<div id="app" class="safeShell">
   <div id="wrap">
-    <header class="card" style="padding:10px;">
+    
+    <div id="spTop" aria-hidden="true"></div>
+<header class="card" style="padding:10px;">
       <div class="row" style="justify-content:space-between; align-items:flex-start;">
         <div>
           <div style="font-weight:1000;" id="title">閲覧</div>
@@ -63,11 +252,18 @@
         <button class="btnMini" id="next">▶</button>
       </div>
       <div id="frameLabel">コマ 1 / 60</div>
+      <div class="row2" style="justify-content:space-between; margin-top:8px;">
+        <button class="btn" id="gifSave">GIFで保存</button>
+        <div class="small muted">端末に保存されます</div>
+      </div>
     </footer>
-  </div>
+  
+    <div id="spBottom" aria-hidden="true"></div>
+</div>
 
   <script src="./config.js"></script>
   <script src="./common.js"></script>
   <script type="module" src="./viewer.js"></script>
+</div>
 </body>
 </html>
