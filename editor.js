@@ -1,4 +1,4 @@
-import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, ensurePublicSnapshotFrames, savePublicSnapshotFrames } from "./util.js";
+import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, ensurePublicSnapshotFrames, savePublicSnapshotFrames, loadPublicSnapshotFrames } from "./util.js";
 window.V15.ensureLogUi();
 window.V15.addLog("editor_init", { href: location.href });
 
@@ -451,7 +451,8 @@ function connectIfNeeded(){
         renderTimer();
 
         const thumb = frames[0] || c.toDataURL("image/png");
-        addPublicWork({ roomId, theme, thumbDataUrl: thumb });
+        // NOTE: for created public, the creator always contributes frame 0.
+        addPublicWork({ roomId, theme, thumbDataUrl: thumb, myFrameIndex: 0 });
         // Save local snapshot at submit time (manual update later)
         { const dataUrl0 = (frames[0] || (()=>{ try{ return c.toDataURL("image/png"); }catch(e){ return null; } })());
           persistPublicFrameOnly(roomId, 0, dataUrl0); }
@@ -472,15 +473,15 @@ function connectIfNeeded(){
 
         const thumb = frames[0] || null;
         if (roomId) {
-          addPublicWork({ roomId, theme, thumbDataUrl: thumb });
-          // Save local snapshot at submit time (manual update later)
+          // NOTE: store which frame the user contributed, so "見る" can jump there.
+          addPublicWork({ roomId, theme, thumbDataUrl: thumb, myFrameIndex: assigned });
+
+          // Save only *my* submitted frame into local snapshot.
+          // (Full snapshot is updated only when the user taps "更新" in gallery.)
           let myUrl = null;
           try{ myUrl = c.toDataURL("image/png"); }catch(e){}
           persistPublicFrameOnly(roomId, assigned, myUrl);
         }
-        // Save local snapshot at submit time (manual update later)
-        { const dataUrl0 = (frames[0] || (()=>{ try{ return c.toDataURL("image/png"); }catch(e){ return null; } })());
-          persistPublicFrameOnly(roomId, 0, dataUrl0); }
         return;
       }
       if (m.t === "error") setStatus("エラー: " + (m.data?.message || m.message || "unknown"));

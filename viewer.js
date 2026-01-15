@@ -8,6 +8,13 @@ const themeQ = (qs("theme") || "").toString();
 const allowLive = qs("live") === "1";
 const useLocal = true; // Phase2: viewer is local-only by default
 
+// Optional: start at a specific frame (1-60). Used to jump to the user's contributed frame.
+let startFrameIndex = 0;
+try{
+  const startQ = Number(qs("start") ?? 1);
+  if (Number.isFinite(startQ)) startFrameIndex = clamp(Math.floor(startQ) - 1, 0, 59);
+}catch(_e){ /* ignore */ }
+
 window.V15.addLog("viewer_init", { roomId, allowLive, search: location.search });
 
 const sub = document.getElementById("sub");
@@ -104,7 +111,7 @@ function requestFrame(i){
 if (!roomId){
   sub.textContent = "お題：-";
   setStatus("表示：部屋IDなし");
-  setCur(0);
+  setCur(startFrameIndex);
 } else {
   sub.textContent = "お題：" + (themeQ || "-");
   setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
@@ -160,7 +167,7 @@ if (!roomId){
   } else {
     net.textContent = "接続：ローカル（更新はギャラリーの「更新」）";
   }
-  setCur(0);
+  setCur(startFrameIndex);
 }
 
 

@@ -70,6 +70,8 @@ function makeWorkCard(w){
     bView.onclick = () => {
       const q = new URLSearchParams({ roomId: w.roomId, theme: w.theme || "" });
       q.set("useLocal", "1");
+      // If the local snapshot only has *my* frame (pre-update), jump to it by default.
+      if (Number.isFinite(Number(w.myFrameIndex))) q.set("start", String(Number(w.myFrameIndex) + 1));
       location.href = "./viewer.html?" + q.toString();
     };
     btns.appendChild(bUpdate);
