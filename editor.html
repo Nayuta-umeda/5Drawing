@@ -114,10 +114,112 @@
     #lockHint{ margin-top:8px; font-size:12.5px; color:var(--muted); line-height:1.45; }
     #saveRow{ display:none; gap:8px; margin-top:10px; }
     #saveRow button{ flex:1; }
-  </style>
+  
+/* === SAFE-AREA + NO-OVERLAP LAYOUT (mobile-first) === */
+:root{
+  --safeTop: max(10vh, env(safe-area-inset-top, 0px));
+  --safeBottom: max(10vh, env(safe-area-inset-bottom, 0px));
+  --uiGap: 10px;
+  --uiPad: 12px;
+  --uiR: 16px;
+  --uiText: clamp(12px, 2.3vw, 16px);
+  --uiTextSm: clamp(11px, 2.1vw, 14px);
+  --uiBtn: clamp(12px, 2.2vw, 15px);
+  --uiBtnPadY: clamp(8px, 1.6vh, 12px);
+  --uiBtnPadX: clamp(10px, 2.4vw, 14px);
+}
+
+html, body{ height:100%; }
+body{
+  margin:0;
+  /* keep the OS/browser chrome clear */
+  padding-top: var(--safeTop);
+  padding-bottom: var(--safeBottom);
+}
+
+#app, .app, .wrap, .container{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+}
+
+.safeShell{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+  padding: var(--uiPad);
+  box-sizing:border-box;
+}
+
+.safeHeader{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size: var(--uiTextSm);
+}
+
+.safeMain{
+  flex: 1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height: 0; /* allow flex children to shrink */
+}
+
+.safeCanvasWrap{
+  width: min(92vw, 420px);
+  aspect-ratio: 1 / 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: var(--uiR);
+  overflow:hidden;
+}
+
+.safeFooter{
+  flex: 0 0 auto;
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+}
+
+.safeTabs{
+  display:flex;
+  gap: 8px;
+}
+.safeTabs button{
+  font-size: var(--uiBtn);
+  padding: var(--uiBtnPadY) var(--uiBtnPadX);
+}
+
+.safePanel{
+  border-radius: var(--uiR);
+  padding: 10px;
+  font-size: var(--uiText);
+}
+
+.safeRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  align-items:center;
+}
+
+.safeRow button, .safeRow input, .safeRow select{
+  font-size: var(--uiBtn);
+}
+
+.verBadge{
+  font-size: 11px;
+  opacity: .65;
+  user-select:none;
+}
+
+</style>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="safeShell">
     <header class="card">
       <div class="topRow">
         <div>
