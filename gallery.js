@@ -69,6 +69,7 @@ function makeWorkCard(w){
     bUpdate.onclick = () => updatePublic(w);
     bView.onclick = () => {
       const q = new URLSearchParams({ roomId: w.roomId, theme: w.theme || "" });
+      q.set("useLocal", "1");
       location.href = "./viewer.html?" + q.toString();
     };
     btns.appendChild(bUpdate);
