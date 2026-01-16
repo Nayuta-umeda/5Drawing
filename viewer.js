@@ -90,8 +90,16 @@ paintWhite();
 
 let ws = null;
 let connected = false;
-const pending = new Set();
+const pending = new Map(); // frameIndex -> { tries, t }
 const waiters = new Map();
+const FRAME_RETRY_MAX = 3;
+
+function clearPending(){
+  for (const [,e] of pending){
+    if (e && e.t) clearTimeout(e.t);
+  }
+  pending.clear();
+}
 
 function waitForFrame(i, ms=2500){
   return new Promise((resolve) => {
@@ -101,11 +109,37 @@ function waitForFrame(i, ms=2500){
   });
 }
 
-function requestFrame(i){
+function requestFrame(i, force=false){
   if (!ws || !connected) return;
-  if (pending.has(i)) return;
-  pending.add(i);
-  ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
+  if (cache[i]) return;
+
+  const cur = pending.get(i);
+  if (cur && !force) return;
+  const tries = (cur?.tries ?? 0);
+  if (tries >= FRAME_RETRY_MAX){
+    if (cur && cur.t) clearTimeout(cur.t);
+    { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+    return;
+  }
+  if (cur && cur.t) clearTimeout(cur.t);
+
+  const next = { tries: tries + 1, t: null };
+  pending.set(i, next);
+  try{
+    ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
+  }catch(_e){}
+
+  const backoff = 800 + (next.tries-1)*450 + Math.floor(Math.random()*220);
+  next.t = setTimeout(() => {
+    const e = pending.get(i);
+    if (!e) return;
+    if (cache[i]){
+      if (e.t) clearTimeout(e.t);
+      { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+      return;
+    }
+    requestFrame(i, true);
+  }, backoff);
 }
 
 if (!roomId){
@@ -147,7 +181,7 @@ if (!roomId){
           const i = d.frameIndex;
           if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
             cache[i] = d.dataUrl;
-            pending.delete(i);
+            { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
             if (i === cur) drawFrame(cur);
             const w = waiters.get(i);
             if (w){ clearTimeout(w.t); w.resolve(d.dataUrl); waiters.delete(i); }
@@ -159,10 +193,12 @@ if (!roomId){
     ws.addEventListener("error", () => {
       connected = false;
       net.textContent = "接続：エラー";
+      clearPending();
     });
     ws.addEventListener("close", () => {
       connected = false;
       net.textContent = "接続：切断";
+      clearPending();
     });
   } else {
     net.textContent = "接続：ローカル（更新はギャラリーの「更新」）";

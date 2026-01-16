@@ -416,13 +416,71 @@ function stopTimer(){
 // Network
 let ws = null;
 let connected = false;
-const pendingFrames = new Set();
+let finished = false;
+let submitBusy = false;
+let submitTimeoutId = null;
 
-function requestFrame(i){
+function clearSubmitTimeout(){
+  if (submitTimeoutId){
+    clearTimeout(submitTimeoutId);
+    submitTimeoutId = null;
+  }
+}
+
+function releaseSubmitLock(){
+  submitBusy = false;
+  clearSubmitTimeout();
+}
+const pendingFrames = new Map(); // frameIndex -> { tries, t }
+const FRAME_RETRY_MAX = 3;
+
+function clearPendingFrames(){
+  for (const [,e] of pendingFrames){
+    if (e && e.t) clearTimeout(e.t);
+  }
+  pendingFrames.clear();
+}
+
+function requestFrame(i, force=false){
   if (!ws || !connected) return;
-  if (pendingFrames.has(i)) return;
-  pendingFrames.add(i);
-  ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
+  if (frames[i]) return;
+
+  const cur = pendingFrames.get(i);
+  if (cur && !force) return;
+
+  const tries = (cur?.tries ?? 0);
+  if (tries >= FRAME_RETRY_MAX){
+    const pe = pendingFrames.get(i);
+          if (pe && pe.t) clearTimeout(pe.t);
+          pendingFrames.delete(i);
+    return;
+  }
+
+  if (cur && cur.t) clearTimeout(cur.t);
+  const next = { tries: tries + 1, t: null };
+  pendingFrames.set(i, next);
+
+  try{
+    ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
+  }catch(_e){
+    // treat as retryable
+  }
+
+  // Timeout -> allow retry (prevents permanent lock by pendingFrames)
+  const backoff = 800 + (next.tries-1)*450 + Math.floor(Math.random()*220);
+  next.t = setTimeout(() => {
+    const e = pendingFrames.get(i);
+    if (!e) return;
+    if (frames[i]){
+      if (e.t) clearTimeout(e.t);
+      const pe = pendingFrames.get(i);
+          if (pe && pe.t) clearTimeout(pe.t);
+          pendingFrames.delete(i);
+      return;
+    }
+    // retry
+    requestFrame(i, true);
+  }, backoff);
 }
 
 function connectIfNeeded(){
@@ -442,7 +500,14 @@ function connectIfNeeded(){
 
   ws.addEventListener("close", () => {
     connected = false;
-    setStatus("接続：切断（提出できません）");
+    clearPendingFrames();
+    if (!finished && submitBusy){
+      releaseSubmitLock();
+      primaryBtn.disabled = false;
+      setStatus("接続：切断（再試行できます）");
+    } else {
+      setStatus("接続：切断（提出できません）");
+    }
   });
 
   ws.addEventListener("message", (ev) => {
@@ -480,6 +545,8 @@ function connectIfNeeded(){
         const i = d.frameIndex;
         if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
           frames[i] = d.dataUrl;
+          const pe = pendingFrames.get(i);
+          if (pe && pe.t) clearTimeout(pe.t);
           pendingFrames.delete(i);
           if (i === cur || i === cur-1) { drawFrame(cur); updateOnion(); }
         }
@@ -496,6 +563,8 @@ function connectIfNeeded(){
         return;
       }
       if (m.t === "created_public") {
+        finished = true;
+        releaseSubmitLock();
         const d = m.data || {};
         roomId = d.roomId;
         theme = d.theme || theme;
@@ -520,6 +589,8 @@ function connectIfNeeded(){
         return;
       }
       if (m.t === "submitted") {
+        finished = true;
+        releaseSubmitLock();
         stopTimer();
         toastTitle.textContent = "終了！";
         toastText.textContent = "提出しました。";
@@ -539,7 +610,14 @@ function connectIfNeeded(){
         }
         return;
       }
-      if (m.t === "error") setStatus("エラー: " + (m.data?.message || m.message || "unknown"));
+      if (m.t === "error"){
+        const msg = (m.data?.message || m.message || "unknown");
+        if (!finished && submitBusy){
+          releaseSubmitLock();
+          primaryBtn.disabled = false;
+        }
+        setStatus("エラー: " + msg);
+      }
     }catch(e){}
   });
 }
@@ -586,8 +664,23 @@ async function primaryAction(isTimeout=false){
     return;
   }
 
+  if (submitBusy) return;
+
+  submitBusy = true;
+  clearSubmitTimeout();
+
   primaryBtn.disabled = true;
   setStatus("送信中…");
+
+  // safety timeout: re-enable send button if no response comes back
+  submitTimeoutId = setTimeout(() => {
+    if (finished) return;
+    if (!submitBusy) return;
+    submitBusy = false;
+    submitTimeoutId = null;
+    primaryBtn.disabled = false;
+    setStatus("通信が不安定です（もう一度送信できます）");
+  }, 12000);
 
   if (isCreatePublic){
     const dataUrl = frames[0] || c.toDataURL("image/png");

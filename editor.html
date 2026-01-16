@@ -8,34 +8,38 @@
   <style>
     html, body{ height:100%; }
 
+    /*
+      V40: Phase4 Step1 essentials (retry/validation/guards)
+      - Removed legacy V15.x layout blocks and !important overrides that were fighting each other.
+      - Single source of truth below (no !important), to keep the canvas centered and the UI higher.
+      - Onion-skin is rendered on a separate canvas layer; the drawing canvas stays visually white via the wrapper,
+        not via canvas background/bitmap fill.
+    */
+
     body{
       overflow:hidden;
       height:100vh;
       box-sizing:border-box;
-      padding-top:max(6px, env(safe-area-inset-top));
-      padding-bottom:max(8px, env(safe-area-inset-bottom));
+      padding-top:max(8px, env(safe-area-inset-top));
+      padding-bottom:max(10px, env(safe-area-inset-bottom));
       padding-left:env(safe-area-inset-left);
       padding-right:env(safe-area-inset-right);
     }
 
-    /* ★ここが今回の本丸：
-       中央行を 1fr（伸びる）→ auto（中身に合わせる）に変更して、
-       フッターが下に吸い込まれず、キャンバスの直下に来るようにする。 */
     #app{
       height:100%;
       max-width:560px;
       margin:0 auto;
-      padding:5px;
+      padding:6px;
       display:grid;
-      grid-template-rows:auto auto auto; /* ← auto / auto / auto */
-      gap:5px;
-      align-content:start;              /* ← 上に詰めて並べる */
+      grid-template-rows:auto 1fr auto;
+      gap:6px;
       min-height:0;
     }
 
-    header.card{ padding:7px; }
+    header.card{ padding:8px; }
     .topRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-    .metaLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .metaLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .metaLine .pill{
       padding:7px 10px;
       border-radius:999px;
@@ -50,9 +54,9 @@
     }
     .pill b{ font-size:12.5px; }
 
-    .rightCol{ display:flex; flex-direction:column; gap:7px; align-items:flex-end; }
+    .rightCol{ display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
     .miniBtn{
-      padding:11px 12px;
+      padding:12px 12px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:rgba(110,168,255,.20);
@@ -61,36 +65,28 @@
     }
     .miniBtn[disabled]{ opacity:.55; pointer-events:none; }
 
-    /* ★mainは“余った高さを埋めない”ようにする（=フッターを押し下げない） */
     #main{
+      min-height:0;
       display:flex;
       align-items:flex-start;
       justify-content:center;
-      min-height:0;
     }
 
-    /* ★描画カードは中身に合わせて縮む */
+    /* Canvas card: remove excessive inner margins, keep a tiny padding */
     #canvasWrap{
-      display:inline-flex;
-      width:auto;
-      height:auto;
-      min-height:0;
-      padding:4px;
-      align-items:center;
+      width:100%;
+      padding:6px;
+      display:flex;
+      align-items:flex-start;
       justify-content:center;
-      margin:0 auto;
     }
 
-    /* 白い紙（背景）はここ。キャンバス自体は透明運用。 */
+    /* The visual "paper" lives here (white bg + border + radius). Canvases themselves stay transparent. */
     #canvasStack{
       position:relative;
-
-      /* キャンバスは前回OKのサイズのまま */
-      --canvasMax: min(88vw, 486px);
-      width: var(--canvasMax);
-      height: var(--canvasMax);
+      width:min(98vw, 540px, calc(100vh - 250px));
       aspect-ratio:1/1;
-
+      margin:0 auto;
       background:#fff;
       border:1px solid rgba(29,31,42,.14);
       border-radius:18px;
@@ -107,17 +103,21 @@
       touch-action:none;
     }
 
+    /* Onion layer shows only in "描く" when a previous frame exists */
     #onionC{
       opacity:0.18;
       display:none;
       z-index:1;
       pointer-events:none;
     }
+
+    /* Drawing layer */
     #c{
       z-index:2;
       background:transparent;
     }
 
+    /* Lock overlay */
     #lockOverlay{
       position:absolute;
       inset:0;
@@ -134,11 +134,10 @@
     }
     #lockOverlay .x{ font-size:68px; line-height:1; opacity:.9; }
 
-    /* ★フッターも少しだけ詰める（上に“寄った感”がさらに出る） */
-    footer.card{ padding:7px; }
-    .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
+    footer.card{ padding:10px; }
+    .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
     .tab{
-      padding:11px 10px;
+      padding:12px 10px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:rgba(29,31,42,.04);
@@ -147,9 +146,9 @@
     .tab.active{ background:rgba(110,168,255,.28); border-color:rgba(110,168,255,.45); }
     .panel.hidden{ display:none; }
 
-    .toolRow{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; }
+    .toolRow{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
     .toolRow button{
-      padding:11px 8px;
+      padding:12px 10px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:var(--panel2);
@@ -158,7 +157,7 @@
     }
     .toolRow button.on{ background:rgba(110,168,255,.26); border-color:rgba(110,168,255,.45); }
 
-    .line{ height:1px; background:rgba(29,31,42,.10); margin:6px 0; }
+    .line{ height:1px; background:rgba(29,31,42,.10); margin:8px 0; }
     .controlRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .label{ font-size:12.5px; color:var(--muted); min-width:96px; }
     #size{ flex:1; min-width:160px; }
@@ -166,7 +165,7 @@
 
     .palette{ display:grid; grid-template-columns:repeat(8,1fr); gap:8px; }
     .swatch{
-      height:32px;
+      height:34px;
       border-radius:12px;
       border:2px solid rgba(29,31,42,.10);
       box-shadow:0 6px 14px rgba(20,24,35,.06);
@@ -194,7 +193,7 @@
             <div class="pill"><span>担当</span><b id="assignedLabel">-</b></div>
             <div class="pill"><span>閲覧</span><b id="viewingLabel">1/60</b></div>
           </div>
-          <div class="small muted" id="status" style="margin-top:6px;">接続待ちでも描けます（提出は接続時のみ）。</div>
+          <div class="small muted" id="status" style="margin-top:8px;">接続待ちでも描けます（提出は接続時のみ）。</div>
         </div>
         <div class="rightCol">
           <div class="badge" id="timer">残り 03:00</div>

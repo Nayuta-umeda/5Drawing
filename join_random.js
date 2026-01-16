@@ -5,6 +5,8 @@ const startBtn = document.getElementById("start");
 const joinByIdBtn = document.getElementById("joinById");
 const roomIdInput = document.getElementById("roomIdInput");
 const statusEl = document.getElementById("status");
+
+const ROOM_ID_RE = /^[A-Z0-9]{6,12}$/;
 const toastMask = document.getElementById("toastMask");
 const toastTitle = document.getElementById("toastTitle");
 const toastText = document.getElementById("toastText");
@@ -75,6 +77,10 @@ if (joinByIdBtn){
     const roomId = String(roomIdInput?.value || "").trim().toUpperCase();
     if (!roomId){
       showError("IDが必要", "参加したい部屋のIDを入力してね。");
+      return;
+    }
+    if (!ROOM_ID_RE.test(roomId)){
+      showError("IDが不正", "IDは英数字（大文字）だけで、長さは6〜12文字だよ。");
       return;
     }
     doJoin("join_by_id", { roomId });
