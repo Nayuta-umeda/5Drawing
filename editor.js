@@ -108,11 +108,28 @@ function undo(){
   internalDraftUpdate();
 }
 
-function paintWhite(){
-  ctx.save();
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0,0,c.width,c.height);
-  ctx.restore();
+function clearFrame(){
+  try{ ctx.clearRect(0,0,c.width,c.height); }catch(e){}
+}
+
+// Offscreen export helper: use when you need a white-backed PNG (without onion)
+const exportC = document.createElement("canvas");
+exportC.width = 256;
+exportC.height = 256;
+const exportCtx = exportC.getContext("2d");
+
+function toWhitePngFromCanvas(srcCanvas){
+  try{
+    if (!exportCtx) return srcCanvas.toDataURL("image/png");
+    exportCtx.setTransform(1,0,0,1,0,0);
+    exportCtx.clearRect(0,0,256,256);
+    exportCtx.fillStyle = "#fff";
+    exportCtx.fillRect(0,0,256,256);
+    exportCtx.drawImage(srcCanvas,0,0,256,256);
+    return exportC.toDataURL("image/png");
+  }catch(e){
+    try{ return srcCanvas.toDataURL("image/png"); }catch(_e){ return null; }
+  }
 }
 function setStatus(t){ statusEl.textContent = t; }
 
@@ -164,7 +181,7 @@ undoBtn.onclick = () => { if (isEditable()) undo(); };
 clearBtn.onclick = () => {
   if (!isEditable()) return;
   snapshot();
-  paintWhite();
+  clearFrame();
   internalDraftUpdate();
 };
 
@@ -200,10 +217,10 @@ function updateOverlay(){
 }
 
 function drawFrame(i){
-  paintWhite();
+  clearFrame();
   if (!frames[i]) return;
   const img = new Image();
-  img.onload = () => { paintWhite(); ctx.drawImage(img,0,0,c.width,c.height); };
+  img.onload = () => { clearFrame(); ctx.drawImage(img,0,0,c.width,c.height); };
   img.src = frames[i];
 }
 
@@ -601,7 +618,7 @@ gifBtn.onclick = async () => {
 };
 
 // boot
-paintWhite();
+clearFrame();
 themeName.textContent = "お題：" + (theme || "-");
 if (isCreatePublic && assigned < 0) assigned = 0;
 
