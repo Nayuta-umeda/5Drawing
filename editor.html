@@ -6,38 +6,17 @@
   <title>編集</title>
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    html, body{ height:100%; }
-
-    /*
-      V40: Phase4 Step1 essentials (retry/validation/guards)
-      - Removed legacy V15.x layout blocks and !important overrides that were fighting each other.
-      - Single source of truth below (no !important), to keep the canvas centered and the UI higher.
-      - Onion-skin is rendered on a separate canvas layer; the drawing canvas stays visually white via the wrapper,
-        not via canvas background/bitmap fill.
-    */
-
-    body{
-      overflow:hidden;
-      height:100vh;
-      box-sizing:border-box;
-      padding-top:max(8px, env(safe-area-inset-top));
-      padding-bottom:max(10px, env(safe-area-inset-bottom));
-      padding-left:env(safe-area-inset-left);
-      padding-right:env(safe-area-inset-right);
-    }
-
+    body{ overflow:hidden; height:100vh; box-sizing:border-box; padding-top:max(10vh, env(safe-area-inset-top)); padding-bottom:max(10vh, env(safe-area-inset-bottom)); padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); }
     #app{
       height:100%;
       max-width:560px;
       margin:0 auto;
-      padding:6px;
+      padding:8px;
       display:grid;
       grid-template-rows:auto 1fr auto;
-      gap:6px;
-      min-height:0;
+      gap:8px;
     }
-
-    header.card{ padding:8px; }
+    header.card{ padding:10px; }
     .topRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
     .metaLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .metaLine .pill{
@@ -53,7 +32,6 @@
       align-items:center;
     }
     .pill b{ font-size:12.5px; }
-
     .rightCol{ display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
     .miniBtn{
       padding:12px 12px;
@@ -64,63 +42,26 @@
       min-width:148px;
     }
     .miniBtn[disabled]{ opacity:.55; pointer-events:none; }
-
-    #main{
-      min-height:0;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-    }
-
-    /* Canvas card: remove excessive inner margins, keep a tiny padding */
+    #main{ display:flex; align-items:center; justify-content:center; min-height:0; }
     #canvasWrap{
-      width:100%;
-      padding:6px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-    }
-
-    /* The visual "paper" lives here (white bg + border + radius). Canvases themselves stay transparent. */
-    #canvasStack{
       position:relative;
-      width:min(98vw, 540px, calc(100vh - 250px));
-      aspect-ratio:1/1;
-      margin:0 auto;
-      background:#fff;
-      border:1px solid rgba(29,31,42,.14);
-      border-radius:18px;
-      box-shadow:0 10px 26px rgba(20,24,35,.08);
-      overflow:hidden;
-    }
-
-    #canvasStack canvas{
-      position:absolute;
-      inset:0;
+      display:flex; align-items:center; justify-content:center;
       width:100%;
-      height:100%;
+      min-height:0;
+    }
+    canvas{
+      width:min(92vw, 380px);
+      height:min(92vw, 380px, calc(100vh - 350px));
       image-rendering:pixelated;
+      border-radius:18px;
+      border:1px solid rgba(29,31,42,.14);
+      background:#fff;
+      box-shadow:0 10px 26px rgba(20,24,35,.08);
       touch-action:none;
     }
-
-    /* Onion layer shows only in "描く" when a previous frame exists */
-    #onionC{
-      opacity:0.18;
-      display:none;
-      z-index:1;
-      pointer-events:none;
-    }
-
-    /* Drawing layer */
-    #c{
-      z-index:2;
-      background:transparent;
-    }
-
-    /* Lock overlay */
     #lockOverlay{
       position:absolute;
-      inset:0;
+      inset:10px;
       border-radius:18px;
       background:rgba(180,184,195,.35);
       border:1px solid rgba(29,31,42,.12);
@@ -130,10 +71,8 @@
       font-weight:1000;
       color:rgba(29,31,42,.72);
       pointer-events:none;
-      z-index:3;
     }
     #lockOverlay .x{ font-size:68px; line-height:1; opacity:.9; }
-
     footer.card{ padding:10px; }
     .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
     .tab{
@@ -145,7 +84,6 @@
     }
     .tab.active{ background:rgba(110,168,255,.28); border-color:rgba(110,168,255,.45); }
     .panel.hidden{ display:none; }
-
     .toolRow{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
     .toolRow button{
       padding:12px 10px;
@@ -156,13 +94,11 @@
       font-size:13.5px;
     }
     .toolRow button.on{ background:rgba(110,168,255,.26); border-color:rgba(110,168,255,.45); }
-
     .line{ height:1px; background:rgba(29,31,42,.10); margin:8px 0; }
     .controlRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .label{ font-size:12.5px; color:var(--muted); min-width:96px; }
     #size{ flex:1; min-width:160px; }
     #sizeVal{ font-weight:1000; }
-
     .palette{ display:grid; grid-template-columns:repeat(8,1fr); gap:8px; }
     .swatch{
       height:34px;
@@ -171,7 +107,6 @@
       box-shadow:0 6px 14px rgba(20,24,35,.06);
     }
     .swatch.sel{ outline:3px solid rgba(110,168,255,.65); border-color:rgba(110,168,255,.35); }
-
     .viewRow{ display:flex; gap:8px; align-items:center; }
     .viewBtn{ padding:12px 10px; border-radius:14px; border:1px solid rgba(29,31,42,.14); background:var(--panel2); font-weight:1000; min-width:78px; }
     #viewSlider{ flex:1; }
@@ -179,12 +114,248 @@
     #lockHint{ margin-top:8px; font-size:12.5px; color:var(--muted); line-height:1.45; }
     #saveRow{ display:none; gap:8px; margin-top:10px; }
     #saveRow button{ flex:1; }
-  </style>
+  
+/* === SAFE-AREA + NO-OVERLAP LAYOUT (mobile-first) === */
+:root{
+  --safeTop: max(10vh, env(safe-area-inset-top, 0px));
+  --safeBottom: max(10vh, env(safe-area-inset-bottom, 0px));
+  --uiGap: 10px;
+  --uiPad: 12px;
+  --uiR: 16px;
+  --uiText: clamp(12px, 2.3vw, 16px);
+  --uiTextSm: clamp(11px, 2.1vw, 14px);
+  --uiBtn: clamp(12px, 2.2vw, 15px);
+  --uiBtnPadY: clamp(8px, 1.6vh, 12px);
+  --uiBtnPadX: clamp(10px, 2.4vw, 14px);
+}
+
+html, body{ height:100%; }
+body{
+  margin:0;
+  /* keep the OS/browser chrome clear */
+  padding-top: var(--safeTop);
+  padding-bottom: var(--safeBottom);
+}
+
+#app, .app, .wrap, .container{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+}
+
+.safeShell{
+  min-height: calc(100vh - var(--safeTop) - var(--safeBottom));
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+  padding: var(--uiPad);
+  box-sizing:border-box;
+}
+
+.safeHeader{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size: var(--uiTextSm);
+}
+
+.safeMain{
+  flex: 1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height: 0; /* allow flex children to shrink */
+}
+
+.safeCanvasWrap{
+  width: min(92vw, 420px);
+  aspect-ratio: 1 / 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: var(--uiR);
+  overflow:hidden;
+}
+
+.safeFooter{
+  flex: 0 0 auto;
+  display:flex;
+  flex-direction:column;
+  gap: var(--uiGap);
+}
+
+.safeTabs{
+  display:flex;
+  gap: 8px;
+}
+.safeTabs button{
+  font-size: var(--uiBtn);
+  padding: var(--uiBtnPadY) var(--uiBtnPadX);
+}
+
+.safePanel{
+  border-radius: var(--uiR);
+  padding: 10px;
+  font-size: var(--uiText);
+}
+
+.safeRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  align-items:center;
+}
+
+.safeRow button, .safeRow input, .safeRow select{
+  font-size: var(--uiBtn);
+}
+
+.verBadge{
+  font-size: 11px;
+  opacity: .65;
+  user-select:none;
+}
+
+
+
+/* === REGION LAYOUT: 10/20/30/30/10 (no overlap) === */
+:root{
+  --safeTop: env(safe-area-inset-top, 0px);
+  --safeBottom: env(safe-area-inset-bottom, 0px);
+  --uiPad: 10px;
+  --gap: 8px;
+  --txt: clamp(11px, 2.2vw, 14px);
+  --txtSm: clamp(10px, 2.0vw, 12.5px);
+  --btn: clamp(11px, 2.2vw, 14px);
+  --btnPY: clamp(7px, 1.2vh, 10px);
+  --btnPX: clamp(9px, 2.2vw, 12px);
+}
+
+body{
+  padding-top: var(--safeTop) !important;
+  padding-bottom: var(--safeBottom) !important;
+}
+
+#app{
+  height: calc(100vh - var(--safeTop) - var(--safeBottom)) !important;
+  display: grid !important;
+  grid-template-rows: 1fr 2fr 3fr 3fr 1fr !important; /* 10/20/30/30/10 */
+  gap: var(--gap) !important;
+  min-height: 0 !important;
+}
+
+#spTop{ grid-row: 1; }
+#spBottom{ grid-row: 5; }
+
+header.card{
+  grid-row: 2;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#main{
+  grid-row: 3;
+  overflow: hidden;
+  min-height: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+footer.card{
+  grid-row: 4;
+  overflow: hidden;
+  min-height: 0;
+}
+
+footer.card .panel{
+  font-size: var(--txt);
+}
+
+button, .tab, .miniBtn, .btn, .btnMini{
+  font-size: var(--btn) !important;
+  padding: var(--btnPY) var(--btnPX) !important;
+}
+
+.h1, #themeName, #title{
+  font-size: clamp(13px, 3vw, 18px) !important;
+}
+
+.small, .muted, #sub, #net, #frameLabel{
+  font-size: var(--txtSm) !important;
+}
+
+.palette .swatch, .swatch{
+  height: clamp(22px, 3.2vh, 32px) !important;
+}
+
+#canvasWrap canvas, canvas#c{
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* keep square within its region */
+#canvasWrap{ padding: 8px !important; }
+#canvasWrap > canvas#c{ aspect-ratio: 1/1; }
+
+
+
+/* === EDITOR TUNE (V15.5) === */
+#app{
+  gap: 14px !important; /* space between regions */
+  /* smaller top spacer, larger canvas row */
+  grid-template-rows: 0.7fr 2fr 4fr 2.6fr 0.7fr !important;
+}
+header.card{
+  justify-content:flex-start !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+/* keep label row at the very top */
+header.card .row, header.card .safeRow{
+  align-items:flex-start !important;
+}
+#main{
+  align-items:flex-start !important;
+  padding-top: 2px !important;
+}
+#canvasWrap, .safeCanvasWrap{
+  width: min(96vw, 560px) !important;
+  padding: 6px !important;
+}
+footer.card{
+  padding-top: 8px !important;
+  padding-bottom: 10px !important;
+}
+
+
+
+/* === EXTRA LAYOUT FIX (V15.6) === */
+#app{
+  /* footer(ペン等)を広く、キャンバスを少し上へ */
+  grid-template-rows: 0.7fr 2fr 3.4fr 3.2fr 0.7fr !important;
+  gap: 14px !important;
+}
+#main{
+  align-items:flex-start !important;
+  padding-top: 2px !important;
+}
+footer.card{
+  overflow: hidden !important;
+}
+/* パレットが隠れないように少しだけコンパクトに */
+.palette{ gap:6px !important; }
+.swatch{ height: clamp(26px, 3.0vh, 32px) !important; border-radius: 10px !important; }
+
+</style>
 </head>
 <body>
-  <div id="app">
-
-    <header class="card">
+  <div id="app" class="safeShell">
+    
+    <div id="spTop" aria-hidden="true"></div>
+<header class="card">
       <div class="topRow">
         <div>
           <div class="h1" id="themeName">お題：-</div>
@@ -204,12 +375,9 @@
     </header>
 
     <div id="main">
-      <div id="canvasWrap" class="card">
-        <div id="canvasStack">
-          <canvas id="onionC" width="256" height="256"></canvas>
-          <canvas id="c" width="256" height="256"></canvas>
-          <div id="lockOverlay"><div class="x">❌</div></div>
-        </div>
+      <div id="canvasWrap" class="card" style="padding:10px;">
+        <canvas id="c" width="256" height="256"></canvas>
+        <div id="lockOverlay"><div class="x">❌</div></div>
       </div>
     </div>
 
@@ -255,8 +423,9 @@
         </div>
       </div>
     </footer>
-
-  </div>
+  
+    <div id="spBottom" aria-hidden="true"></div>
+</div>
 
   <div class="toastMask" id="toastMask">
     <div class="toast">

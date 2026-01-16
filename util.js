@@ -20,7 +20,7 @@ export function uid(prefix="w"){
 // ---- My Works (public snapshot + private local) ----
 const KEY_WORKS = "anim5s_my_works_v15"; // meta list only
 
-export function addPublicWork({ roomId, theme, thumbDataUrl, myFrameIndex = null }){
+export function addPublicWork({ roomId, theme, thumbDataUrl }){
   const list = loadJson(KEY_WORKS, []);
   const id = uid("pub");
   list.unshift({
@@ -31,8 +31,7 @@ export function addPublicWork({ roomId, theme, thumbDataUrl, myFrameIndex = null
     at: Date.now(),
     thumb: thumbDataUrl || null,
     lastSyncAt: 0,
-    filled: null,
-    myFrameIndex: (Number.isFinite(Number(myFrameIndex)) ? Number(myFrameIndex) : null)
+    filled: null
   });
   saveJson(KEY_WORKS, list.slice(0, 80));
   return id;

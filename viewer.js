@@ -8,13 +8,6 @@ const themeQ = (qs("theme") || "").toString();
 const allowLive = qs("live") === "1";
 const useLocal = true; // Phase2: viewer is local-only by default
 
-// Optional: start at a specific frame (1-60). Used to jump to the user's contributed frame.
-let startFrameIndex = 0;
-try{
-  const startQ = Number(qs("start") ?? 1);
-  if (Number.isFinite(startQ)) startFrameIndex = clamp(Math.floor(startQ) - 1, 0, 59);
-}catch(_e){ /* ignore */ }
-
 window.V15.addLog("viewer_init", { roomId, allowLive, search: location.search });
 
 const sub = document.getElementById("sub");
@@ -90,16 +83,8 @@ paintWhite();
 
 let ws = null;
 let connected = false;
-const pending = new Map(); // frameIndex -> { tries, t }
+const pending = new Set();
 const waiters = new Map();
-const FRAME_RETRY_MAX = 3;
-
-function clearPending(){
-  for (const [,e] of pending){
-    if (e && e.t) clearTimeout(e.t);
-  }
-  pending.clear();
-}
 
 function waitForFrame(i, ms=2500){
   return new Promise((resolve) => {
@@ -109,43 +94,17 @@ function waitForFrame(i, ms=2500){
   });
 }
 
-function requestFrame(i, force=false){
+function requestFrame(i){
   if (!ws || !connected) return;
-  if (cache[i]) return;
-
-  const cur = pending.get(i);
-  if (cur && !force) return;
-  const tries = (cur?.tries ?? 0);
-  if (tries >= FRAME_RETRY_MAX){
-    if (cur && cur.t) clearTimeout(cur.t);
-    { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
-    return;
-  }
-  if (cur && cur.t) clearTimeout(cur.t);
-
-  const next = { tries: tries + 1, t: null };
-  pending.set(i, next);
-  try{
-    ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
-  }catch(_e){}
-
-  const backoff = 800 + (next.tries-1)*450 + Math.floor(Math.random()*220);
-  next.t = setTimeout(() => {
-    const e = pending.get(i);
-    if (!e) return;
-    if (cache[i]){
-      if (e.t) clearTimeout(e.t);
-      { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
-      return;
-    }
-    requestFrame(i, true);
-  }, backoff);
+  if (pending.has(i)) return;
+  pending.add(i);
+  ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId, frameIndex:i } }));
 }
 
 if (!roomId){
   sub.textContent = "お題：-";
   setStatus("表示：部屋IDなし");
-  setCur(startFrameIndex);
+  setCur(0);
 } else {
   sub.textContent = "お題：" + (themeQ || "-");
   setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
@@ -181,7 +140,7 @@ if (!roomId){
           const i = d.frameIndex;
           if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
             cache[i] = d.dataUrl;
-            { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+            pending.delete(i);
             if (i === cur) drawFrame(cur);
             const w = waiters.get(i);
             if (w){ clearTimeout(w.t); w.resolve(d.dataUrl); waiters.delete(i); }
@@ -193,17 +152,15 @@ if (!roomId){
     ws.addEventListener("error", () => {
       connected = false;
       net.textContent = "接続：エラー";
-      clearPending();
     });
     ws.addEventListener("close", () => {
       connected = false;
       net.textContent = "接続：切断";
-      clearPending();
     });
   } else {
     net.textContent = "接続：ローカル（更新はギャラリーの「更新」）";
   }
-  setCur(startFrameIndex);
+  setCur(0);
 }
 
 
