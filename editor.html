@@ -423,6 +423,48 @@ footer.card{
       z-index:3;
     }
 
+    /* === v17.6: Layout override (fix canvas centering + move whole UI upward) ===
+       editor.html had multiple legacy "layout fix" blocks (V15.x) with !important and
+       spacer rows (#spTop/#spBottom). Those rules were overriding newer tweaks, causing
+       the canvas/card to appear left-aligned on some devices and the whole layout to sit
+       too low. We keep existing styles but re-declare the final source of truth below. */
+    body{
+      padding-top: max(10px, env(safe-area-inset-top));
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    #spTop, #spBottom{ display:none !important; }
+    #app{
+      height: 100% !important;
+      display: grid !important;
+      grid-template-rows: auto 1fr auto !important;
+      gap: 6px !important;
+      padding: 6px !important;
+      max-width: 560px;
+      margin: 0 auto;
+      min-height: 0 !important;
+    }
+    header.card{ padding: 6px !important; }
+    footer.card{ padding: 8px !important; }
+    #main{
+      display:flex !important;
+      align-items:flex-start !important;
+      justify-content:center !important;
+      padding-top: 0 !important;
+      min-height: 0 !important;
+    }
+    #canvasWrap{
+      width: 100% !important;
+      display:flex !important;
+      align-items:flex-start !important;
+      justify-content:center !important;
+      padding: 8px !important;
+    }
+    #canvasStack{
+      width: min(94vw, 460px, calc(100vh - 210px)) !important;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+    }
+
   </style>
 </head>
 <body>
