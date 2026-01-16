@@ -20,8 +20,9 @@
       overflow:hidden;
       height:100vh;
       box-sizing:border-box;
-      padding-top:max(8px, env(safe-area-inset-top));
-      padding-bottom:max(10px, env(safe-area-inset-bottom));
+      /* Slightly tighter padding so the footer tools stay visible */
+      padding-top:max(6px, env(safe-area-inset-top));
+      padding-bottom:max(8px, env(safe-area-inset-bottom));
       padding-left:env(safe-area-inset-left);
       padding-right:env(safe-area-inset-right);
     }
@@ -30,16 +31,16 @@
       height:100%;
       max-width:560px;
       margin:0 auto;
-      padding:6px;
+      padding:5px;
       display:grid;
       grid-template-rows:auto 1fr auto;
-      gap:6px;
+      gap:5px;
       min-height:0;
     }
 
-    header.card{ padding:8px; }
+    header.card{ padding:7px; }
     .topRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-    .metaLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .metaLine{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
     .metaLine .pill{
       padding:7px 10px;
       border-radius:999px;
@@ -54,9 +55,9 @@
     }
     .pill b{ font-size:12.5px; }
 
-    .rightCol{ display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+    .rightCol{ display:flex; flex-direction:column; gap:7px; align-items:flex-end; }
     .miniBtn{
-      padding:12px 12px;
+      padding:11px 12px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:rgba(110,168,255,.20);
@@ -67,15 +68,19 @@
 
     #main{
       min-height:0;
+      height:100%;
       display:flex;
-      align-items:flex-start;
+      /* Stretch so the canvas can be sized by available height (prevents overlapping the footer) */
+      align-items:stretch;
       justify-content:center;
     }
 
     /* Canvas card: remove excessive inner margins, keep a tiny padding */
     #canvasWrap{
       width:100%;
-      padding:6px;
+      height:100%;
+      min-height:0;
+      padding:4px;
       display:flex;
       align-items:flex-start;
       justify-content:center;
@@ -84,7 +89,11 @@
     /* The visual "paper" lives here (white bg + border + radius). Canvases themselves stay transparent. */
     #canvasStack{
       position:relative;
-      width:min(98vw, 540px, calc(100vh - 250px));
+      /* 90% of the previous max size (540px -> 486px, 98vw -> 88vw)
+         and additionally constrained by available main-row height to avoid overlapping the tool area. */
+      --canvasMax: min(88vw, 486px);
+      width: min(var(--canvasMax), 100%);
+      height: min(var(--canvasMax), 100%);
       aspect-ratio:1/1;
       margin:0 auto;
       background:#fff;
@@ -134,10 +143,10 @@
     }
     #lockOverlay .x{ font-size:68px; line-height:1; opacity:.9; }
 
-    footer.card{ padding:10px; }
-    .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+    footer.card{ padding:8px; }
+    .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
     .tab{
-      padding:12px 10px;
+      padding:11px 10px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:rgba(29,31,42,.04);
@@ -146,9 +155,9 @@
     .tab.active{ background:rgba(110,168,255,.28); border-color:rgba(110,168,255,.45); }
     .panel.hidden{ display:none; }
 
-    .toolRow{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
+    .toolRow{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; }
     .toolRow button{
-      padding:12px 10px;
+      padding:11px 8px;
       border-radius:14px;
       border:1px solid rgba(29,31,42,.14);
       background:var(--panel2);
@@ -157,7 +166,7 @@
     }
     .toolRow button.on{ background:rgba(110,168,255,.26); border-color:rgba(110,168,255,.45); }
 
-    .line{ height:1px; background:rgba(29,31,42,.10); margin:8px 0; }
+    .line{ height:1px; background:rgba(29,31,42,.10); margin:6px 0; }
     .controlRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .label{ font-size:12.5px; color:var(--muted); min-width:96px; }
     #size{ flex:1; min-width:160px; }
@@ -165,7 +174,7 @@
 
     .palette{ display:grid; grid-template-columns:repeat(8,1fr); gap:8px; }
     .swatch{
-      height:34px;
+      height:32px;
       border-radius:12px;
       border:2px solid rgba(29,31,42,.10);
       box-shadow:0 6px 14px rgba(20,24,35,.06);
@@ -193,7 +202,7 @@
             <div class="pill"><span>担当</span><b id="assignedLabel">-</b></div>
             <div class="pill"><span>閲覧</span><b id="viewingLabel">1/60</b></div>
           </div>
-          <div class="small muted" id="status" style="margin-top:8px;">接続待ちでも描けます（提出は接続時のみ）。</div>
+          <div class="small muted" id="status" style="margin-top:6px;">接続待ちでも描けます（提出は接続時のみ）。</div>
         </div>
         <div class="rightCol">
           <div class="badge" id="timer">残り 03:00</div>
