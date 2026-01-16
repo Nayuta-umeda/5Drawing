@@ -11,6 +11,9 @@ const toastOk = document.getElementById("toastOk");
 
 toastOk.onclick = () => toastMask.style.display = "none";
 
+// Phase4: prevent double execution (update spam)
+const updatingRooms = new Set();
+
 function fmt(ts){
   const d = new Date(ts);
   const pad = n => String(n).padStart(2,"0");
@@ -70,6 +73,8 @@ function makeWorkCard(w){
     bView.onclick = () => {
       const q = new URLSearchParams({ roomId: w.roomId, theme: w.theme || "" });
       q.set("useLocal", "1");
+      // If the local snapshot only has *my* frame (pre-update), jump to it by default.
+      if (Number.isFinite(Number(w.myFrameIndex))) q.set("start", String(Number(w.myFrameIndex) + 1));
       location.href = "./viewer.html?" + q.toString();
     };
     btns.appendChild(bUpdate);
@@ -88,17 +93,60 @@ function makeWorkCard(w){
 }
 
 function updatePublic(w){
+  if (!w || !w.roomId) return;
+  if (updatingRooms.has(w.roomId)) return;
+  updatingRooms.add(w.roomId);
+
   const ws = window.V15.createLoggedWebSocket();
   const MAX_MS = 22000;
   let filled = null;
   const frames = Array.from({length:60}, () => null);
-  const pending = new Set();
+
+  const pending = new Map(); // frameIndex -> { tries, t }
+  const FRAME_RETRY_MAX = 3;
+
+  function clearPending(){
+    for (const [,e] of pending){
+      if (e && e.t) clearTimeout(e.t);
+    }
+    pending.clear();
+  }
+
+  function countMissing(){
+    if (!filled) return 0;
+    let miss = 0;
+    for (let i=0;i<60;i++){
+      if (filled[i] && !frames[i]) miss++;
+    }
+    return miss;
+  }
+
+  function maybeFinish(){
+    if (!filled) return;
+    if (pending.size !== 0) return;
+    const miss = countMissing();
+    if (miss === 0) return finalize(true, "「見る」で最新スナップショットを確認できます");
+    return finalize(false, `一部取得できませんでした（${miss}コマ欠け）。もう一度「更新」すると直ることが多いです`);
+  }
+
+  async function finalize(ok, message){
+    clearTimeout(timer);
+    updatingRooms.delete(w.roomId);
+    clearPending();
+    try{ ws.close(); }catch(e){}
+
+    // Save snapshot for "見る" (manual update)
+    try{ await savePublicSnapshotFrames(w.roomId, frames); }catch(e){}
+    updateWorkMeta(w.id, { lastSyncAt: Date.now(), filled, theme: w.theme });
+
+    showToast(ok ? "更新完了" : "更新（部分）", message);
+    render();
+  }
 
   showToast("更新中", "サーバから現在のコマ情報を取得しています…");
-  const t0 = Date.now();
+
   const timer = setTimeout(() => {
-    try{ ws.close(); }catch(e){}
-    showToast("更新失敗", "タイムアウト：通信が完了しませんでした");
+    finalize(false, "タイムアウト：一部しか取得できませんでした");
   }, MAX_MS);
 
   ws.addEventListener("open", () => {
@@ -107,59 +155,79 @@ function updatePublic(w){
     ws.send(JSON.stringify({ v:1, t:"resync", ts:Date.now(), data:{ roomId:w.roomId } }));
   });
 
-  function requestFrame(i){
-    if (pending.has(i)) return;
-    pending.add(i);
-    ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId:w.roomId, frameIndex:i } }));
+  function requestFrame(i, force=false){
+    if (typeof i !== "number" || i<0 || i>=60) return;
+    if (frames[i]) return;
+
+    const cur = pending.get(i);
+    if (cur && !force) return;
+    const tries = (cur?.tries ?? 0);
+    if (tries >= FRAME_RETRY_MAX){
+      if (cur && cur.t) clearTimeout(cur.t);
+      pending.delete(i);
+      return maybeFinish();
+    }
+    if (cur && cur.t) clearTimeout(cur.t);
+
+    const next = { tries: tries + 1, t: null };
+    pending.set(i, next);
+
+    try{
+      ws.send(JSON.stringify({ v:1, t:"get_frame", ts:Date.now(), data:{ roomId:w.roomId, frameIndex:i } }));
+    }catch(_e){}
+
+    const backoff = 800 + (next.tries-1)*450 + Math.floor(Math.random()*220);
+    next.t = setTimeout(() => {
+      const e = pending.get(i);
+      if (!e) return;
+      if (frames[i]){
+        if (e.t) clearTimeout(e.t);
+        pending.delete(i);
+        return maybeFinish();
+      }
+      requestFrame(i, true);
+    }, backoff);
   }
 
-  async function finalizeOk(){
-    clearTimeout(timer);
-    try{ ws.close(); }catch(e){}
-    // Save snapshot for "見る" (manual update)
-    await savePublicSnapshotFrames(w.roomId, frames);
-    updateWorkMeta(w.id, { lastSyncAt: Date.now(), filled, theme: w.theme });
-    showToast("更新完了", "「見る」でローカルに保存された最新スナップショットを確認できます");
-  }
-
-  ws.addEventListener("message", async (ev) => {
+  ws.addEventListener("message", (ev) => {
     try{
       const m = JSON.parse(ev.data);
       if (m.t === "room_state"){
         const d = m.data || {};
         filled = Array.isArray(d.filled) ? d.filled.slice(0,60) : null;
         if (typeof d.theme === "string" && d.theme) updateWorkMeta(w.id, { theme: d.theme });
-        // Request only filled frames
+
         if (filled){
           for (let i=0;i<60;i++) if (filled[i]) requestFrame(i);
-          // If no frames filled, still finish quickly
-          if (filled.every(v => !v)) return await finalizeOk();
+          if (filled.every(v => !v)) return finalize(true, "まだ1コマも提出されていません");
         }
         return;
       }
+
       if (m.t === "frame_data"){
         const d = m.data || {};
         const i = d.frameIndex;
         if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
           frames[i] = d.dataUrl;
+          const pe = pending.get(i);
+          if (pe && pe.t) clearTimeout(pe.t);
           pending.delete(i);
-          // When all requested are received, finish
-          if (filled && pending.size === 0){
-            return await finalizeOk();
-          }
-          // Soft timeout extension
-          if (Date.now() - t0 > MAX_MS - 2000 && pending.size > 0){
-            // Let timer hit; no action
-          }
+          return maybeFinish();
         }
         return;
       }
+
       if (m.t === "error"){
-        clearTimeout(timer);
-        try{ ws.close(); }catch(e){}
-        showToast("更新失敗", m.data?.message || m.message || "unknown");
+        return finalize(false, m.data?.message || m.message || "unknown");
       }
     }catch(e){}
+  });
+
+  ws.addEventListener("error", () => {
+    finalize(false, "通信エラー：接続できませんでした");
+  });
+  ws.addEventListener("close", () => {
+    // If we didn't finish yet, we'll let the timer/finalize handle it.
   });
 }
 

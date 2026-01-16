@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <style>
     body{ overflow:hidden; }
+    .container{ height:100vh; }
     .thumb{
       width:64px; height:64px;
       border-radius:14px;
@@ -25,6 +26,8 @@
     .workInfo{ flex:1; min-width: 180px; }
     .workBtns{ display:flex; gap:8px; flex-wrap:wrap; width:100%; margin-top:10px; }
     .workBtns button{ flex:1; min-width: 140px; }
+    /* Allow scrolling within the list card in flex layouts (important on mobile). */
+    #list{ min-height:0; -webkit-overflow-scrolling: touch; }
   </style>
 </head>
 <body>
@@ -34,7 +37,8 @@
         <div>
           <div class="h1">自分の作品</div>
           <div class="small muted" style="margin-top:6px;">
-            公開は「更新」でサーバから現在の状態（埋まり具合）を取得してから「見る」。<br/>
+            公開は、まず「見る」で手元の履歴（自分が提出したコマなど）を確認できます。<br/>
+            全体の最新状態を見たい場合は「更新」で取得してから「見る」。<br/>
             プライベートはローカル保存のみで自由に編集できます。
           </div>
         </div>
