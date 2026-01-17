@@ -3,6 +3,89 @@
   const LOG_KEY = "anim5s_debug_log_v15";
   const MAX = 1200;
 
+  // App-side confirm modal (avoid browser-native confirm())
+  function ensureConfirmUi(){
+    if (document.getElementById("confirmMask")) return;
+
+    const mask = document.createElement("div");
+    mask.className = "modalMask";
+    mask.id = "confirmMask";
+    mask.style.display = "none";
+    mask.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+        <h2 id="confirmTitle">確認</h2>
+        <p id="confirmText">続行しますか？</p>
+        <div class="modalBtns">
+          <button class="btn btnGhost" id="confirmCancel" type="button">キャンセル</button>
+          <button class="btn btnDanger" id="confirmOk" type="button">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(mask);
+  }
+
+  // Returns Promise<boolean>
+  function confirmModal(opts){
+    ensureConfirmUi();
+    const mask = document.getElementById("confirmMask");
+    const titleEl = document.getElementById("confirmTitle");
+    const textEl  = document.getElementById("confirmText");
+    const okBtn   = document.getElementById("confirmOk");
+    const cancelBtn = document.getElementById("confirmCancel");
+
+    const title = (opts?.title ?? "確認");
+    const text = (opts?.text ?? "続行しますか？");
+    const okText = (opts?.okText ?? "OK");
+    const cancelText = (opts?.cancelText ?? "キャンセル");
+    const danger = !!opts?.danger;
+
+    titleEl.textContent = title;
+    textEl.textContent = text;
+    okBtn.textContent = okText;
+    cancelBtn.textContent = cancelText;
+    okBtn.className = danger ? "btn btnDanger" : "btn btnAccent";
+
+    // Prevent double-open
+    if (mask.__busy) return Promise.resolve(false);
+    mask.__busy = true;
+
+    mask.style.display = "flex";
+
+    // focus: default to cancel (safer)
+    try{ cancelBtn.focus(); }catch(_e){}
+
+    return new Promise((resolve) => {
+      let settled = false;
+
+      function cleanup(val){
+        if (settled) return;
+        settled = true;
+        mask.style.display = "none";
+        mask.__busy = false;
+        mask.removeEventListener("click", onMask);
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        window.removeEventListener("keydown", onKey);
+        resolve(val);
+      }
+
+      function onOk(){ cleanup(true); }
+      function onCancel(){ cleanup(false); }
+      function onMask(ev){
+        // Click outside modal -> cancel
+        if (ev.target === mask) cleanup(false);
+      }
+      function onKey(ev){
+        if (ev.key === "Escape") cleanup(false);
+      }
+
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      mask.addEventListener("click", onMask);
+      window.addEventListener("keydown", onKey);
+    });
+  }
+
   function ts(){ return Date.now(); }
   function safeJson(v){ try{ return JSON.stringify(v); }catch(e){ return String(v); } }
 
@@ -119,7 +202,16 @@
     clear.onclick = () => { clearLog(); render(); };
   }
 
-  window.V15 = { addLog: pushLog, clearLog, readLog, ensureLogUi, createLoggedWebSocket, wsUrlFromBase };
+  window.V15 = {
+    addLog: pushLog,
+    clearLog,
+    readLog,
+    ensureLogUi,
+    ensureConfirmUi,
+    confirmModal,
+    createLoggedWebSocket,
+    wsUrlFromBase,
+  };
 
   window.addEventListener("unhandledrejection", (ev) => pushLog("unhandledrejection", { reason: String(ev.reason || "") }));
   window.addEventListener("error", (ev) => pushLog("error", { message: ev.message, filename: ev.filename, lineno: ev.lineno }));

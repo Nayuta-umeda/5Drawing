@@ -86,7 +86,14 @@ function makeWorkCard(w){
       location.href = "./viewer.html?" + q.toString();
     };
     bDel.onclick = async () => {
-      if (!confirm("削除しますか？")) return;
+      const ok = await window.V15.confirmModal({
+        title: "削除",
+        text: "この作品を削除しますか？（端末内の保存だけが消えます）",
+        okText: "削除する",
+        cancelText: "キャンセル",
+        danger: true,
+      });
+      if (!ok) return;
       try{
         // Remove meta first (so UI updates even if IDB fails)
         deleteWorkMeta(w.id);
@@ -112,7 +119,14 @@ function makeWorkCard(w){
       location.href = "./editor.html?" + q.toString();
     };
     bDel.onclick = async () => {
-      if (!confirm("削除しますか？")) return;
+      const ok = await window.V15.confirmModal({
+        title: "削除",
+        text: "この作品を削除しますか？（端末内の保存だけが消えます）",
+        okText: "削除する",
+        cancelText: "キャンセル",
+        danger: true,
+      });
+      if (!ok) return;
       try{
         deleteWorkMeta(w.id);
         await deletePrivateWorkFrames(w.id);
