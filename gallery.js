@@ -41,11 +41,6 @@ function mk(tag, cls, text){
 }
 
 
-function openViewer(roomId, theme){
-  const sp = new URLSearchParams({ roomId, theme: theme || "" });
-  sp.set("useLocal", "1");
-  location.href = "./viewer.html?" + sp.toString();
-}
 function makeWorkCard(w){
 
   const card = mk("div", "card");

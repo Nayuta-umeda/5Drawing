@@ -6,7 +6,7 @@ window.V15.addLog("page_load", { path: location.pathname });
 const roomId = (qs("roomId") || "").toString().toUpperCase();
 const themeQ = (qs("theme") || "").toString();
 const allowLive = qs("live") === "1";
-const useLocal = true; // Phase2: viewer is local-only by default
+// Phase2: viewer is local-only by default
 
 // Optional: start at a specific frame (1-60). Used to jump to the user's contributed frame.
 let startFrameIndex = 0;
@@ -94,6 +94,12 @@ const pending = new Map(); // frameIndex -> { tries, t }
 const waiters = new Map();
 const FRAME_RETRY_MAX = 3;
 
+function clearPendingEntry(i){
+  const e = pending.get(i);
+  if (e && e.t) clearTimeout(e.t);
+  pending.delete(i);
+}
+
 function clearPending(){
   for (const [,e] of pending){
     if (e && e.t) clearTimeout(e.t);
@@ -117,8 +123,7 @@ function requestFrame(i, force=false){
   if (cur && !force) return;
   const tries = (cur?.tries ?? 0);
   if (tries >= FRAME_RETRY_MAX){
-    if (cur && cur.t) clearTimeout(cur.t);
-    { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+    clearPendingEntry(i);
     return;
   }
   if (cur && cur.t) clearTimeout(cur.t);
@@ -134,8 +139,7 @@ function requestFrame(i, force=false){
     const e = pending.get(i);
     if (!e) return;
     if (cache[i]){
-      if (e.t) clearTimeout(e.t);
-      { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+      clearPendingEntry(i);
       return;
     }
     requestFrame(i, true);
@@ -181,7 +185,7 @@ if (!roomId){
           const i = d.frameIndex;
           if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
             cache[i] = d.dataUrl;
-            { const pe = pending.get(i); if (pe && pe.t) clearTimeout(pe.t); pending.delete(i); }
+            clearPendingEntry(i);
             if (i === cur) drawFrame(cur);
             const w = waiters.get(i);
             if (w){ clearTimeout(w.t); w.resolve(d.dataUrl); waiters.delete(i); }
@@ -229,7 +233,6 @@ if (gifSave){
 }
 async function initLocalSnapshot(){
   try{
-    if (!useLocal) return;
     setStatus("表示：ローカル履歴（更新はギャラリーの「更新」から）");
     const snap = await loadPublicSnapshotFrames(roomId);
     if (!snap){

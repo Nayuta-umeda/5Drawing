@@ -104,16 +104,34 @@ export async function deletePublicSnapshotFrames(roomId){
 const DB_NAME = "anim5s_private_db_v1";
 const STORE = "works";
 
+// Cache the IndexedDB connection promise to avoid reopening for every operation.
+let _dbPromise = null;
 function openDb(){
-  return new Promise((resolve, reject) => {
+  if (_dbPromise) return _dbPromise;
+
+  _dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath:"id" });
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      // If the DB is upgraded in another tab, close and allow re-open.
+      db.onversionchange = () => {
+        try{ db.close(); }catch(e){}
+        _dbPromise = null;
+      };
+      resolve(db);
+    };
+    req.onerror = () => {
+      // Allow retry if open failed.
+      _dbPromise = null;
+      reject(req.error);
+    };
   });
+
+  return _dbPromise;
 }
 
 export async function idbPutWork(work){

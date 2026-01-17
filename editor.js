@@ -1,4 +1,4 @@
-import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, ensurePublicSnapshotFrames, savePublicSnapshotFrames, loadPublicSnapshotFrames } from "./util.js";
+import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, savePublicSnapshotFrames } from "./util.js";
 window.V15.ensureLogUi();
 window.V15.addLog("editor_init", { href: location.href });
 
@@ -434,6 +434,12 @@ function releaseSubmitLock(){
 const pendingFrames = new Map(); // frameIndex -> { tries, t }
 const FRAME_RETRY_MAX = 3;
 
+function clearPendingFrame(i){
+  const e = pendingFrames.get(i);
+  if (e && e.t) clearTimeout(e.t);
+  pendingFrames.delete(i);
+}
+
 function clearPendingFrames(){
   for (const [,e] of pendingFrames){
     if (e && e.t) clearTimeout(e.t);
@@ -450,9 +456,7 @@ function requestFrame(i, force=false){
 
   const tries = (cur?.tries ?? 0);
   if (tries >= FRAME_RETRY_MAX){
-    const pe = pendingFrames.get(i);
-          if (pe && pe.t) clearTimeout(pe.t);
-          pendingFrames.delete(i);
+    clearPendingFrame(i);
     return;
   }
 
@@ -472,10 +476,7 @@ function requestFrame(i, force=false){
     const e = pendingFrames.get(i);
     if (!e) return;
     if (frames[i]){
-      if (e.t) clearTimeout(e.t);
-      const pe = pendingFrames.get(i);
-          if (pe && pe.t) clearTimeout(pe.t);
-          pendingFrames.delete(i);
+      clearPendingFrame(i);
       return;
     }
     // retry
@@ -545,9 +546,7 @@ function connectIfNeeded(){
         const i = d.frameIndex;
         if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
           frames[i] = d.dataUrl;
-          const pe = pendingFrames.get(i);
-          if (pe && pe.t) clearTimeout(pe.t);
-          pendingFrames.delete(i);
+          clearPendingFrame(i);
           if (i === cur || i === cur-1) { drawFrame(cur); updateOnion(); }
         }
         return;
@@ -776,25 +775,6 @@ async function persistPublicSnapshotUpTo(roomId, frameIndex, myDataUrl){
 
     await savePublicSnapshotFrames(roomId, snap);
     window.V15.addLog("pub_snapshot_saved", { roomId, upTo: idx, savedCount: snap.filter(Boolean).length });
-  }catch(e){
-    window.V15.addLog("pub_snapshot_save_error", { message: String(e?.message||e) });
-  }
-}
-
-
-async function persistPublicSnapshot(roomId, theme, snapshotFrames){
-  try{
-    if (!roomId) return;
-    // Ensure full-length array
-    let frames60 = snapshotFrames;
-    if (!Array.isArray(frames60) || frames60.length !== 60){
-      frames60 = Array.from({length:60}, (_,i)=> snapshotFrames?.[i] ?? null);
-    }
-    await savePublicSnapshotFrames(roomId, frames60);
-    // also keep latest thumb in meta for list UI
-    const thumb = frames60[0] || null;
-    // nothing else; meta is handled by addPublicWork/updateWorkMeta
-    window.V15.addLog("pub_snapshot_saved", { roomId, theme, has0: !!thumb });
   }catch(e){
     window.V15.addLog("pub_snapshot_save_error", { message: String(e?.message||e) });
   }
