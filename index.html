@@ -9,8 +9,12 @@
 
 /* === SAFE-AREA + NO-OVERLAP LAYOUT (mobile-first) === */
 :root{
-  --safeTop: max(10vh, env(safe-area-inset-top, 0px));
-  --safeBottom: max(10vh, env(safe-area-inset-bottom, 0px));
+  --adTopH: 64px;
+  --adBottomH: 64px;
+  --baseSafeTop: max(10vh, env(safe-area-inset-top, 0px));
+  --baseSafeBottom: max(10vh, env(safe-area-inset-bottom, 0px));
+  --safeTop: calc(var(--baseSafeTop) + var(--adTopH));
+  --safeBottom: calc(var(--baseSafeBottom) + var(--adBottomH));
   --uiGap: 10px;
   --uiPad: 12px;
   --uiR: 16px;
@@ -114,12 +118,16 @@ body{
 #verBadge{
   position: fixed;
   right: 12px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--adBottomH));
   font-size: 11px;
   opacity: .65;
   z-index: 9999;
   pointer-events:none;
 }
+
+/* avoid overlap with LOG UI when ads are present */
+#logBtn{ bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--adBottomH)); }
+#logPanel{ bottom: calc(env(safe-area-inset-bottom, 0px) + 64px + var(--adBottomH)); }
 
 
 
@@ -173,7 +181,10 @@ body{
 </style>
 </head>
 <body>
-  <div class="verBadge" id="verBadge">V44</div>
+  <!-- AD placeholders (top/bottom) -->
+  <div class="adBar top" aria-label="広告（上）"><div class="adInner"><div class="adBox">AD TOP</div></div></div>
+  <div class="adBar bottom" aria-label="広告（下）"><div class="adInner"><div class="adBox">AD BOTTOM</div></div></div>
+  <div class="verBadge" id="verBadge">V45</div>
   <div class="container lobby">
     <div class="card lobbyTitle" style="padding:14px;">
       <div class="minaTitle">みんあ</div>

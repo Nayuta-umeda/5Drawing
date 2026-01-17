@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="./styles.css" />
   <style>
     body{ overflow:hidden; }
-    .container{ height:100vh; }
     .thumb{
       width:64px; height:64px;
       border-radius:14px;
@@ -30,7 +29,10 @@
     #list{ min-height:0; -webkit-overflow-scrolling: touch; }
   </style>
 </head>
-<body>
+<body class="withAds">
+  <!-- AD placeholders (top/bottom) -->
+  <div class="adBar top" aria-label="広告（上）"><div class="adInner"><div class="adBox">AD TOP</div></div></div>
+  <div class="adBar bottom" aria-label="広告（下）"><div class="adInner"><div class="adBox">AD BOTTOM</div></div></div>
   <div class="container">
     <div class="card" style="padding:14px;">
       <div class="row" style="justify-content:space-between; align-items:flex-start;">

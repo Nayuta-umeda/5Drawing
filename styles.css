@@ -84,6 +84,11 @@ a{ color:inherit; text-decoration:none; }
   border-color:rgba(110,168,255,.45);
 }
 
+.btnDanger{
+  background:rgba(255,90,106,.18);
+  border-color:rgba(255,90,106,.45);
+}
+
 .btnGhost{
   background:rgba(29,31,42,.04);
 }
@@ -208,4 +213,79 @@ hr.sep{
   border:1px solid rgba(29,31,42,.14);
   background:var(--panel2);
   font-weight:1000;
+}
+
+/* =========================
+   ADS (top/bottom placeholders)
+   - Keep existing layout sizes; just shift content by ad height.
+   - Pages that include ads should add: <body class="withAds">
+   ========================= */
+:root{
+  --adTopH: 64px;
+  --adBottomH: 64px;
+  --adMaxW: 560px;
+}
+
+body.withAds{
+  /* pages opt-in by adding class; content area is adjusted via .container margins */
+}
+
+body.withAds .container{
+  height: calc(100vh - var(--adTopH) - var(--adBottomH) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: calc(var(--adTopH) + env(safe-area-inset-top, 0px));
+  margin-bottom: calc(var(--adBottomH) + env(safe-area-inset-bottom, 0px));
+}
+.adBar{
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: var(--adTopH);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(8px);
+  z-index: 6000;
+}
+.adBar.top{
+  top: env(safe-area-inset-top, 0px);
+  border-bottom: 1px solid rgba(29,31,42,.12);
+}
+.adBar.bottom{
+  bottom: env(safe-area-inset-bottom, 0px);
+  height: var(--adBottomH);
+  border-top: 1px solid rgba(29,31,42,.12);
+}
+
+.adInner{
+  width: min(var(--adMaxW), calc(100% - 24px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adBox{
+  width: 100%;
+  height: calc(var(--adTopH) - 16px);
+  border-radius: 14px;
+  border: 1px dashed rgba(29,31,42,.22);
+  background: rgba(29,31,42,.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 1000;
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: rgba(29,31,42,.66);
+  user-select: none;
+}
+
+/* avoid overlap with LOG UI */
+body.withAds #logBtn{
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--adBottomH));
+}
+body.withAds #logPanel{
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 64px + var(--adBottomH));
 }

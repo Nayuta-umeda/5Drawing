@@ -61,6 +61,12 @@ export function updateWorkMeta(id, patch){
   saveJson(KEY_WORKS, list);
 }
 
+export function deleteWorkMeta(id){
+  const list = loadJson(KEY_WORKS, []);
+  const next = list.filter(x => x.id !== id);
+  saveJson(KEY_WORKS, next);
+}
+
 export function listWorks(){
   return loadJson(KEY_WORKS, []);
 }
@@ -87,6 +93,11 @@ export async function loadPublicSnapshotFrames(roomId){
   const key = "pub:" + String(roomId || "");
   const r = await idbGetWork(key);
   return r?.frames || null;
+}
+
+export async function deletePublicSnapshotFrames(roomId){
+  const key = "pub:" + String(roomId || "");
+  await idbDeleteWork(key);
 }
 
 // ---- IndexedDB for private frames ----
@@ -125,6 +136,16 @@ export async function idbGetWork(id){
   });
 }
 
+export async function idbDeleteWork(id){
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function ensurePrivateWorkFrames(id){
   const existing = await idbGetWork(id);
   if (existing && Array.isArray(existing.frames) && existing.frames.length === 60) return existing.frames;
@@ -135,6 +156,10 @@ export async function ensurePrivateWorkFrames(id){
 
 export async function savePrivateFrames(id, frames){
   await idbPutWork({ id, frames, updatedAt: Date.now() });
+}
+
+export async function deletePrivateWorkFrames(id){
+  await idbDeleteWork(id);
 }
 
 export async function loadPrivateFrames(id){

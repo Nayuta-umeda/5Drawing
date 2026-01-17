@@ -1,4 +1,11 @@
-import { listWorks, updateWorkMeta, savePublicSnapshotFrames } from "./util.js";
+import {
+  listWorks,
+  updateWorkMeta,
+  savePublicSnapshotFrames,
+  deleteWorkMeta,
+  deletePublicSnapshotFrames,
+  deletePrivateWorkFrames,
+} from "./util.js";
 
 window.V15.ensureLogUi();
 window.V15.addLog("page_load", { path: location.pathname });
@@ -69,6 +76,7 @@ function makeWorkCard(w){
   if (w.kind === "public") {
     const bUpdate = mk("button", "btn", "更新");
     const bView = mk("button", "btn btnAccent", "見る");
+    const bDel = mk("button", "btn btnDanger", "削除");
     bUpdate.onclick = () => updatePublic(w);
     bView.onclick = () => {
       const q = new URLSearchParams({ roomId: w.roomId, theme: w.theme || "" });
@@ -77,15 +85,45 @@ function makeWorkCard(w){
       if (Number.isFinite(Number(w.myFrameIndex))) q.set("start", String(Number(w.myFrameIndex) + 1));
       location.href = "./viewer.html?" + q.toString();
     };
+    bDel.onclick = async () => {
+      if (!confirm("削除しますか？")) return;
+      try{
+        // Remove meta first (so UI updates even if IDB fails)
+        deleteWorkMeta(w.id);
+
+        // Only delete snapshot frames if no other work references this roomId.
+        const remains = listWorks().some(x => x.kind === "public" && x.roomId === w.roomId);
+        if (!remains) await deletePublicSnapshotFrames(w.roomId);
+
+        showToast("削除", "削除しました");
+      }catch(e){
+        showToast("削除", "削除に失敗しました（端末の保存領域の状態を確認してね）");
+      }
+      render();
+    };
     btns.appendChild(bUpdate);
     btns.appendChild(bView);
+    btns.appendChild(bDel);
   } else {
     const bEdit = mk("button", "btn btnAccent", "編集");
+    const bDel = mk("button", "btn btnDanger", "削除");
     bEdit.onclick = () => {
       const q = new URLSearchParams({ mode:"private_local", workId:w.id, theme:w.theme||"" });
       location.href = "./editor.html?" + q.toString();
     };
+    bDel.onclick = async () => {
+      if (!confirm("削除しますか？")) return;
+      try{
+        deleteWorkMeta(w.id);
+        await deletePrivateWorkFrames(w.id);
+        showToast("削除", "削除しました");
+      }catch(e){
+        showToast("削除", "削除に失敗しました（端末の保存領域の状態を確認してね）");
+      }
+      render();
+    };
     btns.appendChild(bEdit);
+    btns.appendChild(bDel);
   }
 
   card.appendChild(btns);
