@@ -5,6 +5,7 @@ import {
   deleteWorkMeta,
   deletePublicSnapshotFrames,
   deletePrivateWorkFrames,
+  FRAME_COUNT,
 } from "./util.js";
 
 window.V15.ensureLogUi();
@@ -147,7 +148,7 @@ function updatePublic(w){
   const ws = window.V15.createLoggedWebSocket();
   const MAX_MS = 22000;
   let filled = null;
-  const frames = Array.from({length:60}, () => null);
+  const frames = Array.from({length:FRAME_COUNT}, () => null);
 
   const pending = new Map(); // frameIndex -> { tries, t }
   const FRAME_RETRY_MAX = 3;
@@ -162,7 +163,7 @@ function updatePublic(w){
   function countMissing(){
     if (!filled) return 0;
     let miss = 0;
-    for (let i=0;i<60;i++){
+    for (let i=0;i<FRAME_COUNT;i++){
       if (filled[i] && !frames[i]) miss++;
     }
     return miss;
@@ -203,7 +204,7 @@ function updatePublic(w){
   });
 
   function requestFrame(i, force=false){
-    if (typeof i !== "number" || i<0 || i>=60) return;
+    if (typeof i !== "number" || i<0 || i>=FRAME_COUNT) return;
     if (frames[i]) return;
 
     const cur = pending.get(i);
@@ -241,11 +242,11 @@ function updatePublic(w){
       const m = JSON.parse(ev.data);
       if (m.t === "room_state"){
         const d = m.data || {};
-        filled = Array.isArray(d.filled) ? d.filled.slice(0,60) : null;
+        filled = Array.isArray(d.filled) ? d.filled.slice(0,FRAME_COUNT) : null;
         if (typeof d.theme === "string" && d.theme) updateWorkMeta(w.id, { theme: d.theme });
 
         if (filled){
-          for (let i=0;i<60;i++) if (filled[i]) requestFrame(i);
+          for (let i=0;i<FRAME_COUNT;i++) if (filled[i]) requestFrame(i);
           if (filled.every(v => !v)) return finalize(true, "まだ1コマも提出されていません");
         }
         return;
@@ -254,7 +255,7 @@ function updatePublic(w){
       if (m.t === "frame_data"){
         const d = m.data || {};
         const i = d.frameIndex;
-        if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
+        if (typeof i === "number" && i>=0 && i<FRAME_COUNT && typeof d.dataUrl === "string"){
           frames[i] = d.dataUrl;
           const pe = pending.get(i);
           if (pe && pe.t) clearTimeout(pe.t);

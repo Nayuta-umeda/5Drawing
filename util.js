@@ -2,6 +2,12 @@
 export function qs(name){ return new URLSearchParams(location.search).get(name); }
 export function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
 
+// --- Animation constants (V51 / spec change) ---
+// 5 seconds animation:
+//  - 6 fps => 30 frames
+export const FRAME_COUNT = 30;
+export const FPS = 6;
+
 export function loadJson(key, fallback){
   try{
     const raw = localStorage.getItem(key);
@@ -80,8 +86,14 @@ export function getWork(id){
 export async function ensurePublicSnapshotFrames(roomId){
   const key = "pub:" + String(roomId || "");
   const existing = await idbGetWork(key);
-  if (existing && Array.isArray(existing.frames) && existing.frames.length === 60) return existing.frames;
-  const frames = Array.from({length:60}, () => null);
+  if (existing && Array.isArray(existing.frames)){
+    if (existing.frames.length === FRAME_COUNT) return existing.frames;
+    // Migrate older snapshots to the new frame count (truncate/extend).
+    const next = Array.from({length:FRAME_COUNT}, (_,i) => existing.frames[i] || null);
+    await idbPutWork({ id: key, frames: next, updatedAt: Date.now() });
+    return next;
+  }
+  const frames = Array.from({length:FRAME_COUNT}, () => null);
   await idbPutWork({ id: key, frames, updatedAt: Date.now() });
   return frames;
 }
@@ -166,8 +178,13 @@ export async function idbDeleteWork(id){
 
 export async function ensurePrivateWorkFrames(id){
   const existing = await idbGetWork(id);
-  if (existing && Array.isArray(existing.frames) && existing.frames.length === 60) return existing.frames;
-  const frames = Array.from({length:60}, () => null);
+  if (existing && Array.isArray(existing.frames)){
+    if (existing.frames.length === FRAME_COUNT) return existing.frames;
+    const next = Array.from({length:FRAME_COUNT}, (_,i) => existing.frames[i] || null);
+    await idbPutWork({ id, frames: next, updatedAt: Date.now() });
+    return next;
+  }
+  const frames = Array.from({length:FRAME_COUNT}, () => null);
   await idbPutWork({ id, frames, updatedAt: Date.now() });
   return frames;
 }

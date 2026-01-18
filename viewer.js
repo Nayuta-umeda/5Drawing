@@ -1,4 +1,4 @@
-import { qs, clamp, loadPublicSnapshotFrames } from "./util.js";
+import { qs, clamp, loadPublicSnapshotFrames, FRAME_COUNT, FPS } from "./util.js";
 
 window.V15.ensureLogUi();
 window.V15.addLog("page_load", { path: location.pathname });
@@ -8,11 +8,11 @@ const themeQ = (qs("theme") || "").toString();
 const allowLive = qs("live") === "1";
 // Phase2: viewer is local-only by default
 
-// Optional: start at a specific frame (1-60). Used to jump to the user's contributed frame.
+// Optional: start at a specific frame (1-30). Used to jump to the user's contributed frame.
 let startFrameIndex = 0;
 try{
   const startQ = Number(qs("start") ?? 1);
-  if (Number.isFinite(startQ)) startFrameIndex = clamp(Math.floor(startQ) - 1, 0, 59);
+  if (Number.isFinite(startQ)) startFrameIndex = clamp(Math.floor(startQ) - 1, 0, FRAME_COUNT - 1);
 }catch(_e){ /* ignore */ }
 
 window.V15.addLog("viewer_init", { roomId, allowLive, search: location.search });
@@ -35,8 +35,8 @@ const gifSave = document.getElementById("gifSave");
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 
-let filled = Array.from({length:60}, ()=>false);
-let cache = Array.from({length:60}, ()=>null);
+let filled = Array.from({length:FRAME_COUNT}, ()=>false);
+let cache = Array.from({length:FRAME_COUNT}, ()=>null);
 let cur = 0;
 
 // Phase3: room-level deadline display (best-effort)
@@ -55,7 +55,7 @@ function renderFrameLabel(){
   const extra = (roomDeadlineAt && Number.isFinite(roomDeadlineAt))
     ? ` / 部屋 ${fmt(roomDeadlineAt - Date.now())}`
     : "";
-  frameLabel.textContent = `コマ ${cur+1} / 60${extra}`;
+  frameLabel.textContent = `コマ ${cur+1} / ${FRAME_COUNT}${extra}`;
 }
 
 function paintWhite(){
@@ -75,7 +75,7 @@ function drawFrame(i){
 }
 
 function setCur(i){
-  cur = clamp(i,0,59);
+  cur = clamp(i,0,FRAME_COUNT - 1);
   slider.value = String(cur+1);
   renderFrameLabel();
   drawFrame(cur);
@@ -174,7 +174,7 @@ if (!roomId){
           if (d.theme) sub.textContent = "お題：" + d.theme;
           if (typeof d.phase === "string") roomPhase = d.phase;
           if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
-          if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+          if (Array.isArray(d.filled) && d.filled.length >= FRAME_COUNT) filled = d.filled.slice(0, FRAME_COUNT);
           net.textContent = "接続：OK" + (roomPhase ? `（${roomPhase}）` : "");
           renderFrameLabel();
           if (filled[0] && !cache[0]) requestFrame(0);
@@ -183,7 +183,7 @@ if (!roomId){
         if (m.t === "frame_data") {
           const d = m.data || {};
           const i = d.frameIndex;
-          if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string"){
+          if (typeof i === "number" && i>=0 && i<FRAME_COUNT && typeof d.dataUrl === "string"){
             cache[i] = d.dataUrl;
             clearPendingEntry(i);
             if (i === cur) drawFrame(cur);
@@ -215,21 +215,55 @@ if (!roomId){
 if (gifSave){
   gifSave.onclick = async () => {
     try{
-      for (let i=0;i<60;i++){
+      for (let i=0;i<FRAME_COUNT;i++){
         if (filled[i] && !cache[i]){ requestFrame(i); await waitForFrame(i, 2500); }
       }
-      const dataUrls = Array.from({length:60}, (_,i)=> cache[i] || null);
+      const dataUrls = Array.from({length:FRAME_COUNT}, (_,i)=> cache[i] || null);
       const themeText = (sub?.textContent || "").replace(/^お題：/,"").trim() || "anim";
       const safeTheme = themeText.replace(/[\\/:*?\"<>|]/g, "_");
       const safeRoom = (roomId || "room").replace(/[^A-Z0-9_-]/g, "_");
       const filename = `${safeTheme}_${safeRoom}.gif`;
       const mod = await import("./gif.js");
-      await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs:8, filename });
+      await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, fps: FPS, filename });
+      // V50: send "GIFで保存" count for public ranking (best-effort)
+      await notifyGifSaved();
     }catch(e){
       window.V15?.addLog?.("gif_save_failed", { message: String(e?.message || e) });
       alert("GIF保存に失敗しました。");
     }
   };
+}
+
+async function notifyGifSaved(){
+  const rid = String(roomId || "").trim().toUpperCase();
+  if (!rid) return;
+
+  // If we are in live mode, reuse the existing WS.
+  if (ws && connected){
+    try{
+      ws.send(JSON.stringify({ v:1, t:"gif_saved", ts: Date.now(), data:{ roomId: rid } }));
+      window.V15?.addLog?.("gif_saved_sent", { roomId: rid, via:"reuse" });
+    }catch(_e){}
+    return;
+  }
+
+  // Otherwise, fire a tiny one-shot WS (do not block UX if it fails).
+  try{
+    const w = window.V15.createLoggedWebSocket();
+    let opened = false;
+    const openP = new Promise((resolve) => {
+      const to = setTimeout(resolve, 900);
+      w.addEventListener("open", () => { opened = true; clearTimeout(to); resolve(); }, { once:true });
+    });
+    await openP;
+    if (!opened){ try{ w.close(); }catch(_e){}; return; }
+
+    try{ w.send(JSON.stringify({ v:1, t:"hello", ts: Date.now(), data:{} })); }catch(_e){}
+    try{ w.send(JSON.stringify({ v:1, t:"gif_saved", ts: Date.now(), data:{ roomId: rid } })); }catch(_e){}
+    window.V15?.addLog?.("gif_saved_sent", { roomId: rid, via:"oneshot" });
+
+    setTimeout(() => { try{ w.close(); }catch(_e){} }, 500);
+  }catch(_e){}
 }
 async function initLocalSnapshot(){
   try{
@@ -240,8 +274,8 @@ async function initLocalSnapshot(){
       drawFrame(cur);
       return;
     }
-    if (Array.isArray(snap) && snap.length === 60){
-      for (let i=0;i<60;i++){
+    if (Array.isArray(snap) && snap.length >= FRAME_COUNT){
+      for (let i=0;i<FRAME_COUNT;i++){
         cache[i] = snap[i] || null;
         filled[i] = !!snap[i];
       }

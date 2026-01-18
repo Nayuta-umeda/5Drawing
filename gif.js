@@ -176,13 +176,13 @@ export async function exportGifFromDataUrls({
   height,
   dataUrls,
   filename = "anim5s.gif",
-  fps = 12,
+  fps = 6,
   yieldEvery = 4,
 }){
   const W = Math.max(1, width|0);
   const H = Math.max(1, height|0);
   const frames = Array.isArray(dataUrls) ? dataUrls : [];
-  const COUNT = frames.length || 60;
+  const COUNT = frames.length || 30;
 
   const pal = buildWebSafePalette256();
   const delays = makeDelays(COUNT, fps);

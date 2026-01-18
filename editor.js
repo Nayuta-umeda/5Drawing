@@ -1,4 +1,4 @@
-import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, savePublicSnapshotFrames } from "./util.js";
+import { qs, clamp, addPublicWork, updateWorkMeta, ensurePrivateWorkFrames, savePrivateFrames, savePublicSnapshotFrames, FRAME_COUNT, FPS } from "./util.js";
 window.V15.ensureLogUi();
 window.V15.addLog("editor_init", { href: location.href });
 
@@ -89,8 +89,8 @@ let tool = "pen";
 let color = PALETTE[0].v;
 let size = 6;
 
-let frames = Array.from({length:60}, ()=>null);
-let filled = Array.from({length:60}, ()=>false);
+let frames = Array.from({length:FRAME_COUNT}, ()=>null);
+let filled = Array.from({length:FRAME_COUNT}, ()=>false);
 
 // Undo
 const undoStack = [];
@@ -207,9 +207,9 @@ function loadDraft(){
 function updateLabels(){
   themeName.textContent = "お題：" + (theme || "-");
   roomIdLabel.textContent = roomId || (isCreatePublic ? "(未作成)" : "-");
-  assignedLabel.textContent = isPrivateLocal ? "ALL" : ((assigned>=0)? `${assigned+1}/60` : (isCreatePublic ? "1/60" : "-"));
-  viewingLabel.textContent = `${cur+1}/60`;
-  frameLabel.textContent = `コマ ${cur+1} / 60`;
+  assignedLabel.textContent = isPrivateLocal ? "ALL" : ((assigned>=0)? `${assigned+1}/${FRAME_COUNT}` : (isCreatePublic ? `1/${FRAME_COUNT}` : "-"));
+  viewingLabel.textContent = `${cur+1}/${FRAME_COUNT}`;
+  frameLabel.textContent = `コマ ${cur+1} / ${FRAME_COUNT}`;
 }
 function updateOverlay(){
   const locked = (!isPrivateLocal && assigned>=0 && cur!==assigned);
@@ -271,7 +271,7 @@ function updateOnion(){
 
 
 function setCur(i){
-  cur = clamp(i,0,59);
+  cur = clamp(i,0,FRAME_COUNT - 1);
   viewSlider.value = String(cur+1);
   updateLabels();
   updateOverlay();
@@ -519,7 +519,7 @@ function connectIfNeeded(){
         if (d.theme) theme = d.theme;
         if (typeof d.phase === "string") roomPhase = d.phase;
         if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
-        if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+        if (Array.isArray(d.filled) && d.filled.length >= FRAME_COUNT) filled = d.filled.slice(0, FRAME_COUNT);
         updateLabels();
         renderTimer();
 
@@ -544,7 +544,7 @@ function connectIfNeeded(){
       if (m.t === "frame_data") {
         const d = m.data || {};
         const i = d.frameIndex;
-        if (typeof i === "number" && i>=0 && i<60 && typeof d.dataUrl === "string") {
+        if (typeof i === "number" && i>=0 && i<FRAME_COUNT && typeof d.dataUrl === "string") {
           frames[i] = d.dataUrl;
           clearPendingFrame(i);
           if (i === cur || i === cur-1) { drawFrame(cur); updateOnion(); }
@@ -554,7 +554,7 @@ function connectIfNeeded(){
       if (m.t === "frame_committed") {
         const d = m.data || {};
         const i = d.frameIndex;
-        if (typeof i === "number" && i>=0 && i<60) {
+        if (typeof i === "number" && i>=0 && i<FRAME_COUNT) {
           filled[i] = true;
           frames[i] = null;
           if (i === cur || i === cur-1) requestFrame(i);
@@ -569,7 +569,7 @@ function connectIfNeeded(){
         theme = d.theme || theme;
         if (typeof d.phase === "string") roomPhase = d.phase;
         if (Number.isFinite(Number(d.deadlineAt))) roomDeadlineAt = Number(d.deadlineAt);
-        if (Array.isArray(d.filled) && d.filled.length === 60) filled = d.filled;
+        if (Array.isArray(d.filled) && d.filled.length >= FRAME_COUNT) filled = d.filled.slice(0, FRAME_COUNT);
         updateLabels();
         renderTimer();
 
@@ -702,7 +702,7 @@ gifBtn.onclick = async () => {
   try{
     const mod = await import("./gif.js");
     if (!mod || typeof mod.exportGifFromDataUrls !== "function") throw new Error("exportGifFromDataUrls が見つかりません");
-    await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, delayCs: 8, filename: `${safeTheme}.gif` });
+    await mod.exportGifFromDataUrls({ width:256, height:256, dataUrls, fps: FPS, filename: `${safeTheme}.gif` });
   }catch(e){
     window.V15?.addLog?.("gif_import_failed", { message: String(e?.message || e) });
     alert("GIF機能の読み込みに失敗しました。\n（gif.js が壊れている/キャッシュが古い可能性）");
@@ -723,7 +723,7 @@ setCur(isPrivateLocal ? 0 : (assigned>=0 ? assigned : 0));
 
 if (isPrivateLocal){
   ensurePrivateWorkFrames(workId).then((f) => {
-    if (Array.isArray(f) && f.length === 60){ frames = f; drawFrame(cur); }
+    if (Array.isArray(f) && f.length >= FRAME_COUNT){ frames = f.slice(0, FRAME_COUNT); drawFrame(cur); }
   });
 }
 
@@ -748,9 +748,9 @@ async function persistPublicSnapshotUpTo(roomId, frameIndex, myDataUrl){
   try{
     if (!roomId) return;
     const idx = Number(frameIndex);
-    if (!Number.isFinite(idx) || idx<0 || idx>=60) return;
+    if (!Number.isFinite(idx) || idx<0 || idx>=FRAME_COUNT) return;
 
-    const snap = Array.from({length:60}, () => null);
+    const snap = Array.from({length:FRAME_COUNT}, () => null);
 
     // 「自分が描いた時点でのアニメ」= 自分のコマ + それ以前（0..idx-1）
     // 参加方式の都合上、idxより後が埋まることは基本的に無い（最若空き割当）
